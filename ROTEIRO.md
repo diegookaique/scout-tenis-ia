@@ -51,7 +51,7 @@ scout-tenis-ia/
 ### Etapa 0: setup do projeto (dia 1)
 
 - [ ] Repositório criado no GitHub
-- [ ] Ambiente virtual e dependências
+- [x] Ambiente virtual e dependências
 - [ ] Chave da API em `.env`
 
 **Prompt:**
@@ -68,8 +68,11 @@ Inicialize o git e faça o primeiro commit.
 
 ### Etapa 1: carga dos dados (dias 1–2)
 
-- [ ] Script baixa os CSVs de partidas 2000–atual, jogadores e rankings
-- [ ] Banco `tenis.duckdb` com tabelas limpas
+- [x] Script baixa os CSVs de partidas 2000–atual, jogadores e rankings
+- [x] Banco `tenis.duckdb` com tabelas limpas
+
+> Nota: o repositório original `JeffSackmann/tennis_atp` saiu do GitHub. O script usa o fork
+> `Kadantte/tennis_atp` (mesmos commits do autor, dados até jun/2026), configurável via `TENNIS_ATP_URL`.
 
 Arquivos de origem (raw do GitHub):
 - `atp_matches_{ano}.csv`: partidas (vencedor, perdedor, placar, superfície, estatísticas de saque)

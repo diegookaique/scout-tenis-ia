@@ -6,4 +6,5 @@ Agente que responde perguntas sobre tênis (ATP) em linguagem natural, consultan
 
 ## Dados
 
-[Jeff Sackmann / tennis_atp](https://github.com/JeffSackmann/tennis_atp), licença CC BY-NC-SA 4.0.
+Jeff Sackmann / tennis_atp, licença CC BY-NC-SA 4.0. Como o repositório original saiu do GitHub,
+os CSVs são baixados do fork [Kadantte/tennis_atp](https://github.com/Kadantte/tennis_atp).
