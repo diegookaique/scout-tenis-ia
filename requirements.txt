@@ -1,0 +1,9 @@
+duckdb
+pandas
+anthropic
+streamlit
+plotly
+python-dotenv
+requests
+pytest
+pyyaml

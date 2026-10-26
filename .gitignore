@@ -1,0 +1,23 @@
+# Segredos
+.env
+.streamlit/secrets.toml
+
+# Dados e banco (gerados por scripts/carregar_dados.py)
+data/
+*.duckdb
+*.duckdb.wal
+
+# Ambiente virtual
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Editores e SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
