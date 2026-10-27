@@ -1,0 +1,36 @@
+"""Testes do modo demonstração (usa o banco, não a API)."""
+
+import json
+
+import pytest
+
+from src.db import CAMINHO_BANCO
+from src.demo import PERGUNTAS_EXEMPLO, AgenteDemo
+
+pytestmark = pytest.mark.skipif(not CAMINHO_BANCO.exists(), reason="tenis.duckdb não encontrado")
+
+
+@pytest.mark.parametrize("pergunta", PERGUNTAS_EXEMPLO)
+def test_cada_exemplo_responde_sem_erro(pergunta):
+    r = AgenteDemo().perguntar(pergunta)
+
+    assert r["sqls_executados"] and not r["sqls_executados"][0]["erro"]
+    assert "Modo demonstração" in r["resposta_texto"]
+    for figura in r["graficos"]:
+        json.loads(figura)
+
+
+def test_grand_slams_lider_e_djokovic():
+    r = AgenteDemo().perguntar("Quem mais venceu Grand Slams desde 2000?")
+    assert "**Novak Djokovic**" in r["resposta_texto"]
+
+
+def test_aces_isner_2015():
+    r = AgenteDemo().perguntar("quantos aces o isner fez em 2015?")
+    assert "1.260 aces" in r["resposta_texto"]
+
+
+def test_pergunta_livre_explica_o_modo_demo():
+    r = AgenteDemo().perguntar("Quem é o maior sacador da história?")
+    assert r["sqls_executados"] == []
+    assert "ANTHROPIC_API_KEY" in r["resposta_texto"]

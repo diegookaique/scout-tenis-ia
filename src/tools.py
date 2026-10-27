@@ -149,7 +149,10 @@ def gerar_grafico(
     erro = _validar_grafico(dados, tipo, x, y, serie)
     if erro:
         return {"figura": None, "erro": erro}
-    df = pd.DataFrame(dados)
+    # Nomes de coluna viram rótulos legíveis ("vitorias_sinner" → "Vitorias sinner")
+    df = pd.DataFrame(dados).rename(columns=_rotulo)
+    x, serie = _rotulo(x), _rotulo(serie) if serie else None
+    y = _rotulo(y) if isinstance(y, str) else [_rotulo(c) for c in y]
     if tipo == "barra":
         fig = px.bar(df, x=x, y=y, color=serie, barmode="group")
     elif tipo == "linha":
@@ -159,8 +162,16 @@ def gerar_grafico(
     else:
         fig = px.line_polar(df, theta=x, r=y, color=serie, line_close=True)
         fig.update_traces(fill="toself")
-    fig.update_layout(title=titulo, template="plotly_white")
+        # Fundo transparente para o radar acompanhar o tema claro ou escuro
+        fig.update_layout(polar={"bgcolor": "rgba(0,0,0,0)"})
+    # Sem template fixo: a interface aplica o tema dela (claro ou escuro)
+    fig.update_layout(title=titulo, legend_title_text="")
     return {"figura": fig.to_json(), "erro": None}
+
+
+def _rotulo(coluna: str) -> str:
+    texto = coluna.replace("_", " ")
+    return texto[:1].upper() + texto[1:]
 
 
 def _validar_grafico(

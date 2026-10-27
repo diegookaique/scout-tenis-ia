@@ -141,7 +141,7 @@ tentativa de DROP bloqueada.
 
 - [x] Prompt de sistema com esquema, glossário e regras
 - [x] Loop de tool use (chama tools até ter a resposta final)
-- [ ] Autocorreção quando o SQL falha
+- [x] Autocorreção quando o SQL falha
 - [ ] Teste no terminal
 
 **Prompt (parte 1, prompts.py):**
@@ -183,10 +183,14 @@ Adicione um bloco if __name__ == "__main__" para conversar pelo terminal.
 
 ### Etapa 4: interface Streamlit (dias 8–9)
 
-- [ ] Chat com histórico (`st.chat_message`)
-- [ ] Gráficos Plotly renderizados na resposta
-- [ ] Expander "🔍 Como cheguei nisso" com SQLs e passos
-- [ ] Sidebar com perguntas de exemplo clicáveis e período dos dados
+- [x] Chat com histórico (`st.chat_message`)
+- [x] Gráficos Plotly renderizados na resposta
+- [x] Expander "🔍 Como cheguei nisso" com SQLs e passos
+- [x] Sidebar com perguntas de exemplo clicáveis e período dos dados
+- [x] Modo demonstração sem chave da API (`src/demo.py`): as 6 perguntas de exemplo rodam SQL pronto no banco
+
+> Nota: sem `ANTHROPIC_API_KEY`, o app abre em modo demonstração. Com a chave, usa o agente
+> de verdade. O teste de pronto foi feito no modo demonstração; falta repetir com a chave.
 
 **Prompt:**
 ```
