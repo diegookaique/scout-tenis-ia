@@ -7,7 +7,7 @@
 ![Claude API](https://img.shields.io/badge/Claude_API-tool_use-D97757?logo=anthropic&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-app-FF4B4B?logo=streamlit&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-gráficos-3F4F75?logo=plotly&logoColor=white)
-![Testes](https://img.shields.io/badge/testes-46_passando-2EA44F)
+![Testes](https://img.shields.io/badge/testes-62_passando-2EA44F)
 
 ![Resposta do Scout de Tênis IA para o H2H entre Sinner e Alcaraz](docs/resposta-h2h.jpg)
 
@@ -27,6 +27,8 @@
 | Quem mais venceu Grand Slams desde 2000? | Novak Djokovic, 24 títulos |
 | Quantos aces o Isner fez em 2015? | 1.260 aces em 70 partidas |
 | Qual o retrospecto do João Fonseca por superfície? | 54 vitórias em 88 partidas (61,4%) |
+| Quem é favorito em Sinner × Alcaraz na grama, pelo Elo? | Alcaraz, com 51,9% de chance |
+| Quem tem o maior Elo no saibro hoje? | Carlos Alcaraz (2.071), seguido de Sinner (2.055) |
 
 ## Como funciona
 
@@ -41,9 +43,11 @@ flowchart LR
     T --> Q[consultar_sql]
     T --> G[gerar_grafico]
     T --> L[listar_tabelas]
+    T --> P[prever_partida]
     B --> D[(DuckDB<br/>tenis.duckdb)]
     Q --> D
     L --> D
+    P --> D
     A -->|texto + gráficos + SQL| S
 ```
 
@@ -64,6 +68,7 @@ Um exemplo do caminho que o agente faz:
 | `buscar_jogador(nome)` | Busca aproximada (Jaro-Winkler, sem acento), top 5 candidatos com país e nº de partidas |
 | `consultar_sql(sql)` | Executa uma consulta de leitura, com limite de 200 linhas e timeout de 20 s |
 | `gerar_grafico(dados, tipo, x, y, titulo)` | Gráfico Plotly de barra, linha, dispersão ou radar |
+| `prever_partida(jogador_a_id, jogador_b_id, superficie)` | Chance de vitória de cada jogador pelo Elo, com avisos de confiabilidade |
 
 ### Segurança e confiabilidade
 
@@ -73,9 +78,31 @@ Um exemplo do caminho que o agente faz:
 - **Limites:** no máximo 8 iterações por pergunta. Na última, as tools são desligadas para forçar uma resposta final.
 - **Custo:** prompt caching em tools, prompt de sistema e histórico, para que as perguntas seguintes custem menos.
 
+## Previsão de partidas com Elo por superfície
+
+O projeto calcula um **rating Elo** para cada jogador, percorrendo as 78.829 partidas jogadas desde 2000 em ordem cronológica (walkovers ficam de fora). Cada jogador tem um **Elo geral** e um **Elo por superfície** (quadra dura, saibro, grama e carpete). Todo jogador começa com 1.500. Quem vence ganha pontos, e ganha mais quando vence um adversário mais forte.
+
+A previsão usa a **média do Elo geral com o da superfície**. O Elo da superfície capta a especialidade do jogador, mas sozinho tem poucas partidas: na grama são poucas semanas por ano, e os ratings ficam "comprimidos" perto de 1.500. O geral tem muitas partidas, mas ignora a superfície. A média junta as duas coisas.
+
+### Validação
+
+Para escolher o modelo, cada partida desde 2023 foi prevista **só com os ratings de antes dela** (10.329 partidas), e as variações foram comparadas:
+
+| Modelo | Acerto do favorito | Brier score ↓ | Log loss ↓ |
+|---|---|---|---|
+| Ranking ATP: o mais bem ranqueado vence (referência) | 63,9% | – | – |
+| Elo só da superfície, K = 32 | 63,0% | 0,224 | 0,639 |
+| Elo geral, K = 32 | 64,1% | 0,221 | 0,632 |
+| Elo combinado, K dinâmico (fórmula do FiveThirtyEight) | 63,9% | 0,222 | 0,636 |
+| **Elo combinado, K = 32 (escolhido)** | **64,2%** | **0,219** | **0,628** |
+
+O Elo acerta o vencedor tanto quanto o ranking ATP, mas entrega uma **probabilidade calibrada** em vez de só uma ordem, e é isso que o Brier score e o log loss medem. O K dinâmico, que desacelera o ajuste para veteranos, não melhorou o resultado. Por isso ficou o K = 32 clássico. Os números são recalculados e gravados na tabela `elo_validacao` sempre que os dados são carregados.
+
+**Limites:** o Elo vem só de resultados. Ele não vê lesões, partidas fora do circuito principal (Challengers) nem estilo de jogo. Por isso a tool devolve avisos junto com a previsão, por exemplo quando um jogador tem menos de 20 partidas na superfície.
+
 ## Modo demonstração (sem chave da API)
 
-Sem `ANTHROPIC_API_KEY`, o app abre em **modo demonstração**: as 6 perguntas de exemplo da barra lateral são respondidas por consultas prontas, que passam pelas mesmas tools e pelo mesmo banco, só que sem a IA. Assim dá para explorar a interface e os gráficos sem custo. Com a chave, o mesmo app passa a usar o agente e aceita qualquer pergunta.
+Sem `ANTHROPIC_API_KEY`, o app abre em **modo demonstração**: as 8 perguntas de exemplo da barra lateral são respondidas por consultas prontas, que passam pelas mesmas tools e pelo mesmo banco, só que sem a IA. Assim dá para explorar a interface e os gráficos sem custo. Com a chave, o mesmo app passa a usar o agente e aceita qualquer pergunta.
 
 ![Gráfico radar do João Fonseca por superfície](docs/radar-fonseca.jpg)
 
@@ -90,6 +117,9 @@ Sem `ANTHROPIC_API_KEY`, o app abre em **modo demonstração**: as 6 perguntas d
 | `partidas` | tabela | Uma linha por partida: vencedor, perdedor, placar, superfície, rodada, estatísticas de saque |
 | `jogadores` | tabela | Nome, mão, data de nascimento, país, altura |
 | `rankings` | tabela | Posição e pontos por semana |
+| `elo` | tabela | Rating Elo de cada jogador depois de cada partida, geral e por superfície |
+| `elo_atual` | tabela | Último Elo de cada jogador em cada superfície |
+| `elo_validacao` | tabela | Acerto, Brier e log loss de cada variação do modelo |
 | `partidas_jogador` | view | Uma linha **por jogador por partida**, do ponto de vista dele (`venceu`, `aces`, `adversario_id`...). Simplifica muito o SQL do agente. |
 
 ## Como rodar
@@ -102,7 +132,7 @@ cd scout-tenis-ia
 python -m venv .venv
 .venv\Scripts\activate          # Windows  (Linux/macOS: source .venv/bin/activate)
 pip install -r requirements.txt
-python scripts/carregar_dados.py   # baixa os CSVs e monta o tenis.duckdb (~1 min)
+python scripts/carregar_dados.py   # baixa os CSVs, monta o tenis.duckdb e calcula o Elo (~1 min)
 streamlit run app.py               # abre em http://localhost:8501
 ```
 
@@ -112,7 +142,8 @@ Para usar o agente com IA, copie `.env.example` para `.env` e preencha `ANTHROPI
 |---|---|
 | `streamlit run app.py` | Interface web |
 | `python -m src.agente` | Conversa com o agente no terminal (precisa da chave) |
-| `pytest` | Roda os 46 testes (nenhum chama a API) |
+| `python scripts/calcular_elo.py` | Recalcula só o Elo e imprime a validação |
+| `pytest` | Roda os 62 testes (nenhum chama a API) |
 
 ## Estrutura do projeto
 
@@ -120,14 +151,16 @@ Para usar o agente com IA, copie `.env.example` para `.env` e preencha `ANTHROPI
 scout-tenis-ia/
 ├── app.py                  # interface Streamlit
 ├── scripts/
-│   └── carregar_dados.py   # baixa os CSVs e monta o tenis.duckdb
+│   ├── carregar_dados.py   # baixa os CSVs e monta o tenis.duckdb
+│   └── calcular_elo.py     # Elo histórico por superfície e validação
 ├── src/
 │   ├── db.py               # conexão read-only com o DuckDB
-│   ├── tools.py            # as 4 tools e o TOOLS_SCHEMA da Anthropic API
+│   ├── elo.py              # matemática do Elo, previsão e métricas
+│   ├── tools.py            # as 5 tools e o TOOLS_SCHEMA da Anthropic API
 │   ├── prompts.py          # prompt de sistema, glossário e exemplos few-shot
 │   ├── agente.py           # loop de tool use (AgenteTenis) e modo terminal
 │   └── demo.py             # modo demonstração sem API (AgenteDemo)
-├── tests/                  # testes das tools, do agente (cliente falso) e do modo demo
+├── tests/                  # testes do Elo, das tools, do agente (cliente falso) e do modo demo
 ├── docs/                   # imagens do README
 ├── ROTEIRO.md              # roteiro de desenvolvimento por etapas
 └── requirements.txt
@@ -135,9 +168,10 @@ scout-tenis-ia/
 
 ## Testes
 
-46 testes com `pytest`, sem chamadas à API:
+62 testes com `pytest`, sem chamadas à API:
 
-- **Tools:** busca de jogador com e sem acento e com erro de digitação, limite de linhas, datas serializáveis, todos os tipos de gráfico e bloqueio de escrita (`DROP`, `DELETE`, `INSERT`, `CREATE`, `COPY`, `ATTACH`, leitura de arquivos, múltiplos comandos).
+- **Elo:** probabilidades da fórmula, conservação dos pontos com K fixo, previsão usando só partidas anteriores e métricas (acerto, Brier).
+- **Tools:** previsão simétrica e com probabilidades somando 100%, avisos de poucas partidas, busca de jogador com e sem acento e com erro de digitação, limite de linhas, datas serializáveis, todos os tipos de gráfico e bloqueio de escrita (`DROP`, `DELETE`, `INSERT`, `CREATE`, `COPY`, `ATTACH`, leitura de arquivos, múltiplos comandos).
 - **Agente:** um cliente falso roteiriza as respostas do modelo para testar o loop, a autocorreção depois de um SQL com erro, o limite de iterações, o histórico e os parâmetros da requisição.
 - **Modo demonstração:** cada pergunta de exemplo executa sem erro e com os valores esperados.
 
@@ -148,7 +182,8 @@ scout-tenis-ia/
 - [x] Agente com tool use, autocorreção e modo terminal
 - [x] Interface Streamlit com modo demonstração
 - [ ] Avaliação automática com perguntas de referência (meta: ≥ 80% de acerto)
-- [ ] Diferencial: evolução no ranking, Elo por superfície ou cartão H2H
+- [x] Elo por superfície com previsão de partidas e validação
+- [ ] Gráfico da evolução do Elo e do ranking ao longo do tempo
 - [ ] Deploy no Streamlit Community Cloud
 
 O detalhe de cada etapa está no [ROTEIRO.md](ROTEIRO.md).
@@ -165,4 +200,4 @@ Dados de tênis de **Jeff Sackmann / [tennis_atp](https://github.com/JeffSackman
 
 ## English summary
 
-**Tennis Scout AI** answers questions about men's professional tennis (ATP) in natural language. A Claude agent uses tool use to look up players, write and run read-only SQL against a DuckDB database of 79k ATP matches (2000–2026), and return the answer with Plotly charts and the exact SQL it ran. The SQL is restricted to `SELECT`/`WITH` on a read-only connection, failed queries are fed back to the model for self-correction, and 46 tests cover the tools, the agent loop (with a fake client) and a no-API demo mode. Built with Python, DuckDB, the Anthropic SDK, Streamlit and Plotly. Data by Jeff Sackmann (CC BY-NC-SA 4.0).
+**Tennis Scout AI** answers questions about men's professional tennis (ATP) in natural language. A Claude agent uses tool use to look up players, write and run read-only SQL against a DuckDB database of 79k ATP matches (2000–2026), and return the answer with Plotly charts and the exact SQL it ran. It also predicts matches with a surface-blended Elo rating, validated on 10k matches since 2023 (64.2% accuracy, Brier 0.219, vs. 63.9% for "higher ATP rank wins"). The SQL is restricted to `SELECT`/`WITH` on a read-only connection, failed queries are fed back to the model for self-correction, and 62 tests cover the Elo model, the tools, the agent loop (with a fake client) and a no-API demo mode. Built with Python, DuckDB, the Anthropic SDK, Streamlit and Plotly. Data by Jeff Sackmann (CC BY-NC-SA 4.0).

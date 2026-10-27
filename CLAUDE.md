@@ -9,7 +9,8 @@ Agente de IA que responde perguntas sobre tênis (ATP) em linguagem natural, con
 
 ## Comandos
 - Instalar: `pip install -r requirements.txt`
-- Carregar dados: `python scripts/carregar_dados.py`
+- Carregar dados: `python scripts/carregar_dados.py` (já recalcula o Elo no fim)
+- Só recalcular o Elo: `python scripts/calcular_elo.py`
 - Agente no terminal: `python -m src.agente`
 - App: `streamlit run app.py`
 - Testes: `pytest`

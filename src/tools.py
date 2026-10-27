@@ -10,6 +10,7 @@ import pandas as pd
 import plotly.express as px
 
 from src.db import cursor
+from src.elo import RATING_INICIAL, combinar, prob_vitoria
 
 LIMITE_LINHAS = 200
 TIMEOUT_SEGUNDOS = 20
@@ -192,6 +193,83 @@ def _validar_grafico(
     return None
 
 
+# ---------------------------------------------------------------- prever_partida
+
+SUPERFICIES_PREVISAO = ("Hard", "Clay", "Grass")
+MIN_PARTIDAS_CONFIAVEL = 20
+
+
+def prever_partida(jogador_a_id: int, jogador_b_id: int, superficie: str) -> dict[str, Any]:
+    """Probabilidade de A vencer B na superfície, pelo Elo combinado (geral + superfície).
+
+    Usa o último rating de cada jogador (tabela elo_atual, gerada por
+    scripts/calcular_elo.py). Devolve {jogador_a, jogador_b, prob_a, prob_b,
+    favorito, avisos, erro}.
+    """
+    if superficie not in SUPERFICIES_PREVISAO:
+        return {"erro": f"Superfície inválida: {superficie}. Use uma de {', '.join(SUPERFICIES_PREVISAO)}."}
+    if jogador_a_id == jogador_b_id:
+        return {"erro": "Escolha dois jogadores diferentes."}
+    try:
+        a, b = (_elo_do_jogador(int(j), superficie) for j in (jogador_a_id, jogador_b_id))
+    except duckdb.CatalogException:
+        return {"erro": "Tabela de Elo não encontrada. Rode: python scripts/calcular_elo.py"}
+    faltando = [str(j) for j, dados in ((jogador_a_id, a), (jogador_b_id, b)) if dados is None]
+    if faltando:
+        return {"erro": f"Sem Elo para o(s) player_id {', '.join(faltando)}: confira com buscar_jogador."}
+
+    prob_a = prob_vitoria(a["elo_combinado"], b["elo_combinado"])
+    return {
+        "superficie": superficie,
+        "jogador_a": a,
+        "jogador_b": b,
+        "prob_a": round(prob_a, 3),
+        "prob_b": round(1 - prob_a, 3),
+        "favorito": a["nome"] if prob_a >= 0.5 else b["nome"],
+        "avisos": _avisos_previsao(a, b),
+        "erro": None,
+    }
+
+
+def _elo_do_jogador(player_id: int, superficie: str) -> dict[str, Any] | None:
+    """Elo geral, da superfície e combinado de um jogador; None se ele não tem partidas."""
+    linha = cursor().execute("""
+        SELECT j.nome_completo,
+               max(e.rating) FILTER (WHERE e.superficie = 'Geral') AS geral,
+               max(e.rating) FILTER (WHERE e.superficie = $sup) AS sup,
+               coalesce(max(e.partidas) FILTER (WHERE e.superficie = $sup), 0) AS partidas_sup,
+               max(e.ultima_partida) AS ultima
+        FROM jogadores j JOIN elo_atual e USING (player_id)
+        WHERE player_id = $id
+        GROUP BY j.nome_completo
+    """, {"id": player_id, "sup": superficie}).fetchone()
+    if linha is None:
+        return None
+    nome, geral, sup, partidas_sup, ultima = linha
+    sup = sup if sup is not None else RATING_INICIAL  # nunca jogou na superfície
+    return {
+        "player_id": player_id,
+        "nome": nome,
+        "elo_geral": round(geral),
+        "elo_superficie": round(sup),
+        "elo_combinado": round(combinar(geral, sup)),
+        "partidas_superficie": partidas_sup,
+        "ultima_partida": _valor_json(ultima),
+    }
+
+
+def _avisos_previsao(*jogadores: dict[str, Any]) -> list[str]:
+    avisos = [
+        f"{j['nome']} tem só {j['partidas_superficie']} partida(s) nessa superfície: o Elo dela é pouco confiável."
+        for j in jogadores
+        if j["partidas_superficie"] < MIN_PARTIDAS_CONFIAVEL
+    ]
+    return avisos + [
+        "O Elo vem só de resultados (não considera lesões, forma recente fora do circuito principal "
+        "ou confronto direto). Acerta o vencedor em cerca de 64% das partidas desde 2023."
+    ]
+
+
 # ---------------------------------------------------------------- definições para a API
 
 TOOLS_SCHEMA: list[dict[str, Any]] = [
@@ -265,9 +343,35 @@ TOOLS_SCHEMA: list[dict[str, Any]] = [
     },
 ]
 
+TOOLS_SCHEMA.append({
+    "name": "prever_partida",
+    "description": (
+        "Estima a probabilidade de cada jogador vencer uma partida numa superfície, pelo rating Elo "
+        "(média do Elo geral com o Elo da superfície, com os ratings mais recentes). Use quando o "
+        "usuário perguntar quem venceria, quem é favorito ou qual a chance de vitória num confronto. "
+        "Antes, obtenha os dois player_id com buscar_jogador. Retorna os ratings, prob_a, prob_b, o "
+        "favorito e avisos (ex.: poucas partidas na superfície), que devem ser repassados ao usuário. "
+        "Para o histórico de Elo, consulte as tabelas elo e elo_atual com consultar_sql."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "jogador_a_id": {"type": "integer", "description": "player_id do primeiro jogador."},
+            "jogador_b_id": {"type": "integer", "description": "player_id do segundo jogador."},
+            "superficie": {
+                "type": "string",
+                "enum": list(SUPERFICIES_PREVISAO),
+                "description": "Hard = quadra dura, Clay = saibro, Grass = grama.",
+            },
+        },
+        "required": ["jogador_a_id", "jogador_b_id", "superficie"],
+    },
+})
+
 FUNCOES: dict[str, Any] = {
     "listar_tabelas": listar_tabelas,
     "buscar_jogador": buscar_jogador,
     "consultar_sql": consultar_sql,
     "gerar_grafico": gerar_grafico,
+    "prever_partida": prever_partida,
 }

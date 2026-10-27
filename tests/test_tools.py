@@ -12,6 +12,7 @@ from src.tools import (
     consultar_sql,
     gerar_grafico,
     listar_tabelas,
+    prever_partida,
 )
 
 pytestmark = pytest.mark.skipif(not CAMINHO_BANCO.exists(), reason="tenis.duckdb não encontrado")
@@ -137,12 +138,45 @@ def test_gerar_grafico_parametros_invalidos(tipo, x, y):
     assert resultado["erro"]
 
 
+# ---------------------------------------------------------------- prever_partida
+
+ID_SINNER, ID_ALCARAZ = 206173, 207989
+
+
+def test_prever_partida_probabilidades_somam_1():
+    r = prever_partida(ID_SINNER, ID_ALCARAZ, "Clay")
+    assert r["erro"] is None
+    assert r["prob_a"] + r["prob_b"] == pytest.approx(1, abs=0.001)
+    assert r["jogador_a"]["nome"] == "Jannik Sinner"
+    assert r["favorito"] in ("Jannik Sinner", "Carlos Alcaraz")
+    json.dumps(r)
+
+
+def test_prever_partida_e_simetrica():
+    ab = prever_partida(ID_SINNER, ID_ALCARAZ, "Hard")
+    ba = prever_partida(ID_ALCARAZ, ID_SINNER, "Hard")
+    assert ab["prob_a"] == pytest.approx(ba["prob_b"], abs=0.001)
+
+
+def test_prever_partida_avisa_poucas_partidas():
+    r = prever_partida(ID_JOAO_FONSECA, ID_DJOKOVIC, "Grass")
+    assert any("Joao Fonseca" in aviso and "pouco confiável" in aviso for aviso in r["avisos"])
+
+
+@pytest.mark.parametrize(
+    "a, b, superficie",
+    [(ID_SINNER, ID_ALCARAZ, "Carpet"), (ID_SINNER, ID_SINNER, "Clay"), (ID_SINNER, 999999999, "Clay")],
+)
+def test_prever_partida_entradas_invalidas(a, b, superficie):
+    assert prever_partida(a, b, superficie)["erro"]
+
+
 # ---------------------------------------------------------------- TOOLS_SCHEMA
 
 
 def test_tools_schema_formato_anthropic():
     nomes = {tool["name"] for tool in TOOLS_SCHEMA}
-    assert nomes == {"listar_tabelas", "buscar_jogador", "consultar_sql", "gerar_grafico"}
+    assert nomes == {"listar_tabelas", "buscar_jogador", "consultar_sql", "gerar_grafico", "prever_partida"}
     for tool in TOOLS_SCHEMA:
         assert tool["description"]
         assert tool["input_schema"]["type"] == "object"

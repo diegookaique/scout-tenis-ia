@@ -9,7 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from src.tools import buscar_jogador, consultar_sql, gerar_grafico
+from src.tools import buscar_jogador, consultar_sql, gerar_grafico, prever_partida
 
 AVISO = "_Modo demonstração: resposta de uma consulta pronta, sem IA._"
 FONTE = "Fonte: dados de Jeff Sackmann (tennis_atp)."
@@ -24,6 +24,8 @@ class Exemplo:
     sql: str
     resumir: Callable[[list[dict[str, Any]]], str]
     grafico: dict[str, Any] | None = None
+    # Exemplos de previsão chamam prever_partida(a, b, superfície) em vez de SQL
+    previsao: tuple[int, int, str] | None = None
 
 
 def _num(valor: float, casas: int = 0) -> str:
@@ -79,6 +81,29 @@ def _resumo_fonseca(linhas: list[dict[str, Any]]) -> str:
                         for l in linhas)
     return (f"**{vitorias} vitórias em {total} partidas** ({_num(100 * vitorias / total, 1)}%) no circuito principal.\n\n"
             f"Por superfície: {por_sup}.")
+
+
+def _resumo_elo_saibro(linhas: list[dict[str, Any]]) -> str:
+    top = linhas[0]
+    resto = ", ".join(f"{l['jogador']} ({_num(l['elo'])})" for l in linhas[1:5])
+    return (f"**{top['jogador']}**, com **Elo {_num(top['elo'])}** no saibro.\n\n"
+            f"Na sequência: {resto}. Só entram jogadores com partida em 2026.")
+
+
+def _resumo_previsao(linhas: list[dict[str, Any]]) -> str:
+    p = linhas[0]
+    a, b = p["jogador_a"], p["jogador_b"]
+    favorito = a if p["prob_a"] >= 0.5 else b
+    chance = max(p["prob_a"], p["prob_b"])
+    superficie = {"Hard": "quadra dura", "Clay": "saibro", "Grass": "grama"}[p["superficie"]]
+    detalhes = "\n".join(
+        f"- {j['nome']}: Elo geral {_num(j['elo_geral'])}, Elo {superficie} {_num(j['elo_superficie'])} "
+        f"({j['partidas_superficie']} partidas), combinado {_num(j['elo_combinado'])}"
+        for j in (a, b)
+    )
+    avisos = "\n".join(f"- {aviso}" for aviso in p["avisos"])
+    return (f"Pelo Elo, **{favorito['nome']}** é favorito, com **{_num(100 * chance, 1)}%** de chance.\n\n"
+            f"{detalhes}\n\n**Avisos:**\n{avisos}")
 
 
 # ---------------------------------------------------------------- exemplos
@@ -150,6 +175,23 @@ GROUP BY superficie ORDER BY superficie""",
         grafico={"tipo": "radar", "x": "superficie", "y": "pct_vitorias",
                  "titulo": "João Fonseca: % de vitórias por superfície"},
     ),
+    Exemplo(
+        pergunta="Quem tem o maior Elo no saibro hoje?",
+        jogadores=[],
+        sql="""SELECT j.nome_completo AS jogador, round(e.rating) AS elo, e.partidas
+FROM elo_atual e JOIN jogadores j USING (player_id)
+WHERE e.superficie = 'Clay' AND e.ultima_partida >= DATE '2026-01-01'
+ORDER BY e.rating DESC LIMIT 10""",
+        resumir=_resumo_elo_saibro,
+        grafico={"tipo": "barra", "x": "jogador", "y": "elo", "titulo": "Top 10 Elo no saibro (ativos em 2026)"},
+    ),
+    Exemplo(
+        pergunta="Quem é favorito em Sinner × Alcaraz na grama, pelo Elo?",
+        jogadores=["Sinner", "Alcaraz"],
+        sql="",
+        resumir=_resumo_previsao,
+        previsao=(206173, 207989, "Grass"),
+    ),
 ]
 
 PERGUNTAS_EXEMPLO = [e.pergunta for e in EXEMPLOS]
@@ -188,6 +230,9 @@ def _responder(exemplo: Exemplo, resultado: dict[str, Any]) -> dict[str, Any]:
         resultado["passos"].append({"tipo": "tool", "nome": "buscar_jogador", "entrada": {"nome": nome},
                                     "erro": None, "saida": achado})
 
+    if exemplo.previsao:
+        return _responder_previsao(exemplo, resultado)
+
     consulta = consultar_sql(exemplo.sql)
     resultado["sqls_executados"].append({"sql": exemplo.sql, "erro": consulta["erro"]})
     resultado["passos"].append({"tipo": "tool", "nome": "consultar_sql", "entrada": {"sql": exemplo.sql},
@@ -206,4 +251,24 @@ def _responder(exemplo: Exemplo, resultado: dict[str, Any]) -> dict[str, Any]:
 
     resultado["n_iteracoes"] = len(resultado["passos"])
     resultado["resposta_texto"] = f"{exemplo.resumir(linhas)}\n\n{FONTE}\n\n{AVISO}"
+    return resultado
+
+
+def _responder_previsao(exemplo: Exemplo, resultado: dict[str, Any]) -> dict[str, Any]:
+    a_id, b_id, superficie = exemplo.previsao
+    entrada = {"jogador_a_id": a_id, "jogador_b_id": b_id, "superficie": superficie}
+    previsao = prever_partida(**entrada)
+    resultado["passos"].append({"tipo": "tool", "nome": "prever_partida", "entrada": entrada,
+                                "erro": previsao["erro"]})
+    if previsao["erro"]:
+        resultado["resposta_texto"] = f"A previsão falhou: {previsao['erro']}"
+        return resultado
+
+    dados = [{"jogador": j["nome"], "chance (%)": round(100 * p, 1)}
+             for j, p in ((previsao["jogador_a"], previsao["prob_a"]), (previsao["jogador_b"], previsao["prob_b"]))]
+    grafico = gerar_grafico(dados, "barra", "jogador", "chance (%)", "Chance de vitória pelo Elo (%)")
+    if not grafico["erro"]:
+        resultado["graficos"].append(grafico["figura"])
+    resultado["n_iteracoes"] = len(resultado["passos"])
+    resultado["resposta_texto"] = f"{exemplo.resumir([previsao])}\n\n{FONTE}\n\n{AVISO}"
     return resultado

@@ -235,7 +235,11 @@ nº de iterações e tempo. Salve o resultado em avaliacao.md.
 ### Etapa 6: diferencial (dia 12, escolha um)
 
 - [ ] **A) Cartão H2H:** tool `comparar_jogadores(a, b)` com radar por superfície e estatísticas de saque
-- [ ] **B) Elo por superfície:** calcular rating Elo histórico e tool `prever_partida(a, b, superficie)`
+- [x] **B) Elo por superfície:** calcular rating Elo histórico e tool `prever_partida(a, b, superficie)`
+
+> Feito em `src/elo.py` + `scripts/calcular_elo.py` (roda junto com `carregar_dados.py`). A previsão usa
+> a média do Elo geral com o da superfície. A validação desde 2023 (10.329 partidas) comparou K fixo e
+> K dinâmico: o melhor foi K = 32 combinado, com 64,2% de acerto e Brier 0,219 (ranking ATP: 63,9%).
 - [ ] **C) Evolução no ranking:** gráfico de linha do ranking de 1+ jogadores ao longo do tempo
 
 **Prompt (exemplo B):**

@@ -166,6 +166,11 @@ def main() -> None:
     parser.add_argument("--forcar", action="store_true", help="rebaixa os CSVs mesmo se já existirem")
     args = parser.parse_args()
     montar_banco(baixar_tudo(args.forcar))
+    # O banco é recriado do zero, então o Elo é recalculado em seguida
+    from calcular_elo import main as calcular_elo  # mesmo diretório deste script
+
+    print()
+    calcular_elo()
 
 
 if __name__ == "__main__":

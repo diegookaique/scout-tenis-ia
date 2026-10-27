@@ -14,7 +14,9 @@ pytestmark = pytest.mark.skipif(not CAMINHO_BANCO.exists(), reason="tenis.duckdb
 def test_cada_exemplo_responde_sem_erro(pergunta):
     r = AgenteDemo().perguntar(pergunta)
 
-    assert r["sqls_executados"] and not r["sqls_executados"][0]["erro"]
+    tools = [p for p in r["passos"] if p["tipo"] == "tool"]
+    assert any(p["nome"] in ("consultar_sql", "prever_partida") for p in tools)
+    assert not any(p["erro"] for p in tools)
     assert "Modo demonstração" in r["resposta_texto"]
     for figura in r["graficos"]:
         json.loads(figura)
@@ -28,6 +30,12 @@ def test_grand_slams_lider_e_djokovic():
 def test_aces_isner_2015():
     r = AgenteDemo().perguntar("quantos aces o isner fez em 2015?")
     assert "1.260 aces" in r["resposta_texto"]
+
+
+def test_previsao_elo_tem_favorito_e_grafico():
+    r = AgenteDemo().perguntar("Quem é favorito em Sinner × Alcaraz na grama, pelo Elo?")
+    assert "é favorito" in r["resposta_texto"] and "Avisos" in r["resposta_texto"]
+    assert len(r["graficos"]) == 1
 
 
 def test_pergunta_livre_explica_o_modo_demo():
