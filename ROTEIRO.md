@@ -110,11 +110,11 @@ SELECT * FROM partidas_jogador WHERE player_id = 104925 LIMIT 5;  -- Djokovic
 
 ### Etapa 2: tools do agente (dias 3–4)
 
-- [ ] `listar_tabelas()`: retorna esquema (tabelas, colunas, tipos)
-- [ ] `buscar_jogador(nome)`: busca aproximada → lista de (id, nome, país)
-- [ ] `consultar_sql(sql)`: executa só SELECT, limita a 200 linhas, timeout
-- [ ] `gerar_grafico(dados, tipo, x, y, titulo)`: devolve figura Plotly
-- [ ] Testes unitários
+- [x] `listar_tabelas()`: retorna esquema (tabelas, colunas, tipos)
+- [x] `buscar_jogador(nome)`: busca aproximada → lista de (id, nome, país)
+- [x] `consultar_sql(sql)`: executa só SELECT, limita a 200 linhas, timeout
+- [x] `gerar_grafico(dados, tipo, x, y, titulo)`: devolve figura Plotly
+- [x] Testes unitários
 
 **Prompt:**
 ```
