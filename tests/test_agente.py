@@ -69,6 +69,23 @@ def test_erro_de_sql_volta_como_is_error():
     assert r["sqls_executados"][0]["erro"]
 
 
+def test_autocorrecao_apos_sql_com_erro():
+    cliente = ClienteFalso(
+        resposta("tool_use", tool_use("t1", "consultar_sql", {"sql": "SELECT count(*) FROM partida"})),
+        resposta("tool_use", tool_use("t2", "consultar_sql", {"sql": "SELECT count(*) AS n FROM partidas"})),
+        resposta("end_turn", texto("São 79.299 partidas.")),
+    )
+    r = AgenteTenis(client=cliente).perguntar("Quantas partidas há?")
+
+    # A mensagem real do DuckDB chega ao modelo, que reenvia a consulta corrigida
+    erro = cliente.chamadas[1]["messages"][-1]["content"][0]
+    assert erro["is_error"] is True and "partida" in erro["content"]
+    acerto = cliente.chamadas[2]["messages"][-1]["content"][0]
+    assert acerto["is_error"] is False and "79299" in acerto["content"]
+    assert [bool(s["erro"]) for s in r["sqls_executados"]] == [True, False]
+    assert r["resposta_texto"] == "São 79.299 partidas."
+
+
 def test_grafico_fica_no_resultado_e_nao_volta_para_o_modelo():
     dados = [{"sup": "Clay", "v": 10}, {"sup": "Hard", "v": 20}]
     cliente = ClienteFalso(

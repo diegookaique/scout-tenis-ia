@@ -173,8 +173,9 @@ def _mensagem_parada(stop_reason: str | None, texto: str) -> str:
 
 def main() -> None:
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "WARNING"))
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        print("ANTHROPIC_API_KEY não encontrada. Copie .env.example para .env e preencha sua chave.")
+    if os.getenv("ANTHROPIC_API_KEY", "") in ("", "sua-chave-aqui"):
+        print("ANTHROPIC_API_KEY não configurada. Abra o arquivo .env e troque "
+              "'sua-chave-aqui' pela sua chave da Anthropic.")
         return
     agente = AgenteTenis()
     print(f"🎾 Scout de Tênis IA ({agente.modelo}). Digite 'sair' para encerrar.\n")
