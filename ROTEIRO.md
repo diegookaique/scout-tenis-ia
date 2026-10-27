@@ -139,8 +139,8 @@ tentativa de DROP bloqueada.
 
 ### Etapa 3: o agente (dias 5–7)
 
-- [ ] Prompt de sistema com esquema, glossário e regras
-- [ ] Loop de tool use (chama tools até ter a resposta final)
+- [x] Prompt de sistema com esquema, glossário e regras
+- [x] Loop de tool use (chama tools até ter a resposta final)
 - [ ] Autocorreção quando o SQL falha
 - [ ] Teste no terminal
 
