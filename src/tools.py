@@ -166,6 +166,8 @@ def gerar_grafico(
         fig.update_layout(polar={"bgcolor": "rgba(0,0,0,0)"})
     # Sem template fixo: a interface aplica o tema dela (claro ou escuro)
     fig.update_layout(title=titulo, legend_title_text="")
+    if not isinstance(y, str):  # várias séries: o eixo y genérico ("value") fica sem título
+        fig.update_layout(yaxis_title="")
     return {"figura": fig.to_json(), "erro": None}
 
 
