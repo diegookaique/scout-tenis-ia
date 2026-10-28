@@ -90,6 +90,18 @@ def _resumo_elo_saibro(linhas: list[dict[str, Any]]) -> str:
             f"Na sequência: {resto}. Só entram jogadores com partida em 2026.")
 
 
+def _resumo_evolucao_elo(linhas: list[dict[str, Any]]) -> str:
+    picos = []
+    for jogador in sorted({l["jogador"] for l in linhas}):
+        pico = max((l for l in linhas if l["jogador"] == jogador), key=lambda l: l["elo"])
+        picos.append(f"{jogador}: {_num(pico['elo'])} em {pico['ano']}")
+    maior = max(linhas, key=lambda l: l["elo"])
+    return (f"O maior Elo de fim de ano do Big 3 foi o de **{maior['jogador']} em {maior['ano']}**, "
+            f"com **{_num(maior['elo'])}**.\n\nPico de cada um: {'; '.join(picos)}.\n\n"
+            "O gráfico mostra o Elo geral no fim de cada ano. Como os dados começam em 2000 e todos "
+            "partem de 1.500, os primeiros anos de Federer ficam subestimados.")
+
+
 def _resumo_previsao(linhas: list[dict[str, Any]]) -> str:
     p = linhas[0]
     a, b = p["jogador_a"], p["jogador_b"]
@@ -186,7 +198,20 @@ ORDER BY e.rating DESC LIMIT 10""",
         grafico={"tipo": "barra", "x": "jogador", "y": "elo", "titulo": "Top 10 Elo no saibro (ativos em 2026)"},
     ),
     Exemplo(
-        pergunta="Quem é favorito em Sinner × Alcaraz na grama, pelo Elo?",
+        pergunta="Como evoluiu o Elo do Big 3 ao longo dos anos?",
+        jogadores=["Djokovic", "Nadal", "Federer"],
+        sql="""SELECT year(e.data) AS ano, any_value(j.nome_completo) AS jogador,
+       round(arg_max(e.rating, e.data)) AS elo
+FROM elo e JOIN jogadores j USING (player_id)
+WHERE e.superficie = 'Geral' AND e.player_id IN (104925, 104745, 103819)
+GROUP BY e.player_id, year(e.data)
+ORDER BY jogador, ano""",
+        resumir=_resumo_evolucao_elo,
+        grafico={"tipo": "linha", "x": "ano", "y": "elo", "serie": "jogador",
+                 "titulo": "Elo geral no fim de cada ano: Djokovic, Nadal e Federer"},
+    ),
+    Exemplo(
+        pergunta="Sinner × Alcaraz na grama: quem é favorito?",
         jogadores=["Sinner", "Alcaraz"],
         sql="",
         resumir=_resumo_previsao,

@@ -48,7 +48,9 @@ Rating Elo (K = 32, começa em 1500): a tabela elo tem o rating de cada jogador 
 depois de cada partida, na coluna superficie ('Geral', 'Hard', 'Clay', 'Grass', \
 'Carpet'); elo_atual tem o último rating de cada jogador em cada escala. Para \
 "melhor jogador no saibro hoje", filtre elo_atual por superficie e por \
-ultima_partida recente (jogadores aposentados mantêm o último rating).
+ultima_partida recente (jogadores aposentados mantêm o último rating). Para a \
+evolução no tempo, use o rating de fim de ano: arg_max(rating, data) agrupado \
+por player_id e year(data), e mostre num gráfico de linha com serie = jogador.
 </dados>
 
 <glossario>

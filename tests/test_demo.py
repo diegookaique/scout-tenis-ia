@@ -33,9 +33,16 @@ def test_aces_isner_2015():
 
 
 def test_previsao_elo_tem_favorito_e_grafico():
-    r = AgenteDemo().perguntar("Quem é favorito em Sinner × Alcaraz na grama, pelo Elo?")
+    r = AgenteDemo().perguntar("Sinner × Alcaraz na grama: quem é favorito?")
     assert "é favorito" in r["resposta_texto"] and "Avisos" in r["resposta_texto"]
     assert len(r["graficos"]) == 1
+
+
+def test_evolucao_elo_big3():
+    r = AgenteDemo().perguntar("Como evoluiu o Elo do Big 3 ao longo dos anos?")
+    assert "**Novak Djokovic em 2015**" in r["resposta_texto"]
+    figura = json.loads(r["graficos"][0])
+    assert len(figura["data"]) == 3  # uma linha por jogador
 
 
 def test_pergunta_livre_explica_o_modo_demo():

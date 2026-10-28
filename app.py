@@ -19,10 +19,11 @@ from src.demo import PERGUNTAS_EXEMPLO, AgenteDemo
 
 load_dotenv()
 
-URL_GITHUB = ""  # preencher quando o repositório estiver no GitHub
+URL_GITHUB = "https://github.com/diegookaique/scout-tenis-ia"
 CHAVE_EXEMPLO = "sua-chave-aqui"
 
-st.set_page_config(page_title="Scout de Tênis IA", page_icon="🎾", layout="wide")
+st.set_page_config(page_title="Scout de Tênis IA", page_icon="🎾", layout="wide",
+                   initial_sidebar_state="collapsed")
 
 
 # ---------------------------------------------------------------- agente
@@ -52,6 +53,19 @@ def carregar_agente(chave: str) -> Any:
 def periodo_dos_dados() -> tuple[str, str]:
     inicio, fim = cursor().execute("SELECT min(tourney_date), max(tourney_date) FROM partidas").fetchone()
     return inicio.strftime("%d/%m/%Y"), fim.strftime("%d/%m/%Y")
+
+
+@st.cache_data(show_spinner=False)
+def numeros_dos_dados() -> dict[str, int]:
+    partidas, jogadores, torneios = cursor().execute("""
+        SELECT count(*), count(DISTINCT player_id), count(DISTINCT torneio_id)
+        FROM partidas_jogador
+    """).fetchone()
+    return {"partidas": partidas // 2, "jogadores": jogadores, "torneios": torneios}
+
+
+def _milhar(valor: int) -> str:
+    return f"{valor:,}".replace(",", ".")
 
 
 # ---------------------------------------------------------------- estado
@@ -135,10 +149,36 @@ def _falha(texto: str) -> dict[str, Any]:
             "historico": st.session_state.historico}
 
 
+# ---------------------------------------------------------------- tela inicial
+
+
+def boas_vindas() -> str | None:
+    """Tela antes da primeira pergunta: o que o app faz, números e exemplos clicáveis."""
+    numeros = numeros_dos_dados()
+    inicio, fim = periodo_dos_dados()
+    st.markdown(
+        "O Scout encontra os jogadores, escreve a consulta SQL, calcula a resposta e mostra um "
+        "gráfico. Ele também prevê partidas com um **rating Elo por superfície**. Abra "
+        "**🔍 Como cheguei nisso** em qualquer resposta para ver o SQL usado."
+    )
+    colunas = st.columns(3)
+    colunas[0].metric("Partidas da ATP", _milhar(numeros["partidas"]))
+    colunas[1].metric("Jogadores", _milhar(numeros["jogadores"]))
+    colunas[2].metric("Período", f"{inicio[-4:]}–{fim[-4:]}")
+
+    st.markdown("##### Experimente")
+    clicada = None
+    grade = st.columns(2)
+    for n, pergunta in enumerate(PERGUNTAS_EXEMPLO):
+        if grade[n % 2].button(pergunta, key=f"inicio-{n}", use_container_width=True):
+            clicada = pergunta
+    return clicada
+
+
 # ---------------------------------------------------------------- barra lateral
 
 
-def barra_lateral(modo_demo: bool) -> str | None:
+def barra_lateral() -> str | None:
     """Desenha a barra lateral e devolve a pergunta de exemplo clicada, se houver."""
     clicada = None
     with st.sidebar:
@@ -151,9 +191,6 @@ def barra_lateral(modo_demo: bool) -> str | None:
         inicio, fim = periodo_dos_dados()
         st.markdown(f"**Dados:** partidas da ATP de {inicio} a {fim}.")
         st.caption("Circuito principal: Grand Slams, Masters, ATP 250/500, Finals, Copa Davis e Olimpíadas.")
-        if modo_demo:
-            st.info("**Modo demonstração.** Sem chave da Claude API, só as perguntas de exemplo são "
-                    "respondidas, com consultas prontas.")
         if URL_GITHUB:
             st.markdown(f"[Código no GitHub]({URL_GITHUB})")
 
@@ -174,11 +211,22 @@ def main() -> None:
     st.caption("Pergunte sobre o circuito masculino de tênis. As respostas vêm de dados reais da ATP "
                "(Jeff Sackmann / tennis_atp), consultados com SQL.")
 
-    clicada = barra_lateral(modo_demo)
+    if modo_demo:
+        st.info("**Modo demonstração:** este app está sem chave da Claude API. As perguntas de "
+                "exemplo funcionam com consultas prontas; perguntas livres precisam da IA.", icon="ℹ️")
+
+    # Pergunta clicada na tela inicial: volta a desenhar a página já sem a tela inicial
+    pendente = st.session_state.pop("pendente", None)
+    clicada = barra_lateral()
+    if not st.session_state.mensagens and not pendente:
+        inicial = boas_vindas()
+        if inicial:
+            st.session_state.pendente = inicial
+            st.rerun()
     mostrar_conversa()
-    dica = "Clique numa pergunta de exemplo ou digite-a aqui" if modo_demo else "Pergunte sobre tênis..."
+    dica = "Escolha um exemplo ou digite" if modo_demo else "Pergunte sobre tênis..."
     digitada = st.chat_input(dica)
-    pergunta = clicada or digitada
+    pergunta = pendente or clicada or digitada
     if pergunta:
         responder(agente, pergunta)
 

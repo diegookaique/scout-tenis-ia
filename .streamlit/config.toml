@@ -1,0 +1,6 @@
+# Configuração da interface (vale localmente e no Streamlit Community Cloud)
+[client]
+toolbarMode = "minimal"  # esconde o botão "Deploy" e o menu de desenvolvedor dos visitantes
+
+[browser]
+gatherUsageStats = false

@@ -7,7 +7,7 @@
 ![Claude API](https://img.shields.io/badge/Claude_API-tool_use-D97757?logo=anthropic&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-app-FF4B4B?logo=streamlit&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-gráficos-3F4F75?logo=plotly&logoColor=white)
-![Testes](https://img.shields.io/badge/testes-62_passando-2EA44F)
+![Testes](https://img.shields.io/badge/testes-64_passando-2EA44F)
 
 ![Resposta do Scout de Tênis IA para o H2H entre Sinner e Alcaraz](docs/resposta-h2h.jpg)
 
@@ -27,8 +27,9 @@
 | Quem mais venceu Grand Slams desde 2000? | Novak Djokovic, 24 títulos |
 | Quantos aces o Isner fez em 2015? | 1.260 aces em 70 partidas |
 | Qual o retrospecto do João Fonseca por superfície? | 54 vitórias em 88 partidas (61,4%) |
-| Quem é favorito em Sinner × Alcaraz na grama, pelo Elo? | Alcaraz, com 51,9% de chance |
+| Sinner × Alcaraz na grama: quem é favorito? | Alcaraz, com 51,9% de chance |
 | Quem tem o maior Elo no saibro hoje? | Carlos Alcaraz (2.071), seguido de Sinner (2.055) |
+| Como evoluiu o Elo do Big 3 ao longo dos anos? | Pico de Djokovic em 2015 (2.414), o maior dos três |
 
 ## Como funciona
 
@@ -84,6 +85,12 @@ O projeto calcula um **rating Elo** para cada jogador, percorrendo as 78.829 par
 
 A previsão usa a **média do Elo geral com o da superfície**. O Elo da superfície capta a especialidade do jogador, mas sozinho tem poucas partidas: na grama são poucas semanas por ano, e os ratings ficam "comprimidos" perto de 1.500. O geral tem muitas partidas, mas ignora a superfície. A média junta as duas coisas.
 
+### Evolução no tempo
+
+Como o Elo é guardado depois de cada partida, dá para ver a trajetória de qualquer jogador. Abaixo, o Elo geral de fim de ano do Big 3: o auge de Federer em 2006, a alternância entre 2008 e 2013 e o pico de Djokovic em 2015 (2.414, o maior dos três).
+
+![Elo geral no fim de cada ano de Djokovic, Nadal e Federer](docs/elo-big3.jpg)
+
 ### Validação
 
 Para escolher o modelo, cada partida desde 2023 foi prevista **só com os ratings de antes dela** (10.329 partidas), e as variações foram comparadas:
@@ -102,7 +109,7 @@ O Elo acerta o vencedor tanto quanto o ranking ATP, mas entrega uma **probabilid
 
 ## Modo demonstração (sem chave da API)
 
-Sem `ANTHROPIC_API_KEY`, o app abre em **modo demonstração**: as 8 perguntas de exemplo da barra lateral são respondidas por consultas prontas, que passam pelas mesmas tools e pelo mesmo banco, só que sem a IA. Assim dá para explorar a interface e os gráficos sem custo. Com a chave, o mesmo app passa a usar o agente e aceita qualquer pergunta.
+Sem `ANTHROPIC_API_KEY`, o app abre em **modo demonstração**: as 9 perguntas de exemplo (na tela inicial e na barra lateral) são respondidas por consultas prontas, que passam pelas mesmas tools e pelo mesmo banco, só que sem a IA. Assim dá para explorar a interface e os gráficos sem custo. Com a chave, o mesmo app passa a usar o agente e aceita qualquer pergunta.
 
 ![Gráfico radar do João Fonseca por superfície](docs/radar-fonseca.jpg)
 
@@ -143,7 +150,7 @@ Para usar o agente com IA, copie `.env.example` para `.env` e preencha `ANTHROPI
 | `streamlit run app.py` | Interface web |
 | `python -m src.agente` | Conversa com o agente no terminal (precisa da chave) |
 | `python scripts/calcular_elo.py` | Recalcula só o Elo e imprime a validação |
-| `pytest` | Roda os 62 testes (nenhum chama a API) |
+| `pytest` | Roda os 64 testes (nenhum chama a API) |
 
 ## Estrutura do projeto
 
@@ -168,7 +175,7 @@ scout-tenis-ia/
 
 ## Testes
 
-62 testes com `pytest`, sem chamadas à API:
+64 testes com `pytest`, sem chamadas à API:
 
 - **Elo:** probabilidades da fórmula, conservação dos pontos com K fixo, previsão usando só partidas anteriores e métricas (acerto, Brier).
 - **Tools:** previsão simétrica e com probabilidades somando 100%, avisos de poucas partidas, busca de jogador com e sem acento e com erro de digitação, limite de linhas, datas serializáveis, todos os tipos de gráfico e bloqueio de escrita (`DROP`, `DELETE`, `INSERT`, `CREATE`, `COPY`, `ATTACH`, leitura de arquivos, múltiplos comandos).
@@ -183,7 +190,7 @@ scout-tenis-ia/
 - [x] Interface Streamlit com modo demonstração
 - [ ] Avaliação automática com perguntas de referência (meta: ≥ 80% de acerto)
 - [x] Elo por superfície com previsão de partidas e validação
-- [ ] Gráfico da evolução do Elo e do ranking ao longo do tempo
+- [x] Gráfico da evolução do Elo ao longo dos anos
 - [ ] Deploy no Streamlit Community Cloud
 
 O detalhe de cada etapa está no [ROTEIRO.md](ROTEIRO.md).
@@ -200,4 +207,4 @@ Dados de tênis de **Jeff Sackmann / [tennis_atp](https://github.com/JeffSackman
 
 ## English summary
 
-**Tennis Scout AI** answers questions about men's professional tennis (ATP) in natural language. A Claude agent uses tool use to look up players, write and run read-only SQL against a DuckDB database of 79k ATP matches (2000–2026), and return the answer with Plotly charts and the exact SQL it ran. It also predicts matches with a surface-blended Elo rating, validated on 10k matches since 2023 (64.2% accuracy, Brier 0.219, vs. 63.9% for "higher ATP rank wins"). The SQL is restricted to `SELECT`/`WITH` on a read-only connection, failed queries are fed back to the model for self-correction, and 62 tests cover the Elo model, the tools, the agent loop (with a fake client) and a no-API demo mode. Built with Python, DuckDB, the Anthropic SDK, Streamlit and Plotly. Data by Jeff Sackmann (CC BY-NC-SA 4.0).
+**Tennis Scout AI** answers questions about men's professional tennis (ATP) in natural language. A Claude agent uses tool use to look up players, write and run read-only SQL against a DuckDB database of 79k ATP matches (2000–2026), and return the answer with Plotly charts and the exact SQL it ran. It also predicts matches with a surface-blended Elo rating, validated on 10k matches since 2023 (64.2% accuracy, Brier 0.219, vs. 63.9% for "higher ATP rank wins"). The SQL is restricted to `SELECT`/`WITH` on a read-only connection, failed queries are fed back to the model for self-correction, and 64 tests cover the Elo model, the tools, the agent loop (with a fake client) and a no-API demo mode. Built with Python, DuckDB, the Anthropic SDK, Streamlit and Plotly. Data by Jeff Sackmann (CC BY-NC-SA 4.0).

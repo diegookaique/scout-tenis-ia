@@ -240,7 +240,7 @@ nº de iterações e tempo. Salve o resultado em avaliacao.md.
 > Feito em `src/elo.py` + `scripts/calcular_elo.py` (roda junto com `carregar_dados.py`). A previsão usa
 > a média do Elo geral com o da superfície. A validação desde 2023 (10.329 partidas) comparou K fixo e
 > K dinâmico: o melhor foi K = 32 combinado, com 64,2% de acerto e Brier 0,219 (ranking ATP: 63,9%).
-- [ ] **C) Evolução no ranking:** gráfico de linha do ranking de 1+ jogadores ao longo do tempo
+- [x] **C) Evolução no ranking:** gráfico de linha do ranking de 1+ jogadores ao longo do tempo (feito com o Elo de fim de ano; o agente também consegue com a tabela rankings)
 
 **Prompt (exemplo B):**
 ```

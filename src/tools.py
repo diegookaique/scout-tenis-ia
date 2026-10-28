@@ -15,6 +15,8 @@ from src.elo import RATING_INICIAL, combinar, prob_vitoria
 LIMITE_LINHAS = 200
 TIMEOUT_SEGUNDOS = 20
 TIPOS_GRAFICO = ("barra", "linha", "dispersao", "radar")
+# Cores bem distintas entre si e legíveis no tema claro e no escuro
+CORES = ["#4C9BE8", "#F28E2B", "#59A14F", "#E15759", "#B07AA1", "#EDC948", "#76B7B2", "#FF9DA7"]
 
 
 # ---------------------------------------------------------------- listar_tabelas
@@ -155,13 +157,13 @@ def gerar_grafico(
     x, serie = _rotulo(x), _rotulo(serie) if serie else None
     y = _rotulo(y) if isinstance(y, str) else [_rotulo(c) for c in y]
     if tipo == "barra":
-        fig = px.bar(df, x=x, y=y, color=serie, barmode="group")
+        fig = px.bar(df, x=x, y=y, color=serie, barmode="group", color_discrete_sequence=CORES)
     elif tipo == "linha":
-        fig = px.line(df, x=x, y=y, color=serie, markers=True)
+        fig = px.line(df, x=x, y=y, color=serie, markers=True, color_discrete_sequence=CORES)
     elif tipo == "dispersao":
-        fig = px.scatter(df, x=x, y=y, color=serie)
+        fig = px.scatter(df, x=x, y=y, color=serie, color_discrete_sequence=CORES)
     else:
-        fig = px.line_polar(df, theta=x, r=y, color=serie, line_close=True)
+        fig = px.line_polar(df, theta=x, r=y, color=serie, line_close=True, color_discrete_sequence=CORES)
         fig.update_traces(fill="toself")
         # Fundo transparente para o radar acompanhar o tema claro ou escuro
         fig.update_layout(polar={"bgcolor": "rgba(0,0,0,0)"})
