@@ -6,9 +6,13 @@
 ![DuckDB](https://img.shields.io/badge/DuckDB-SQL-FFF000?logo=duckdb&logoColor=black)
 ![Gemini API](https://img.shields.io/badge/Gemini_API-function_calling-4285F4?logo=googlegemini&logoColor=white)
 ![Claude API](https://img.shields.io/badge/Claude_API-tool_use-D97757?logo=anthropic&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-app-FF4B4B?logo=streamlit&logoColor=white)
+[![App no ar](https://img.shields.io/badge/app_no_ar-scout--tenis--ia.streamlit.app-FF4B4B?logo=streamlit&logoColor=white)](https://scout-tenis-ia.streamlit.app)
 ![Plotly](https://img.shields.io/badge/Plotly-gráficos-3F4F75?logo=plotly&logoColor=white)
 ![Testes](https://img.shields.io/badge/testes-122_passando-2EA44F)
+
+### ▶️ [Abrir o app: scout-tenis-ia.streamlit.app](https://scout-tenis-ia.streamlit.app)
+
+Funciona no navegador, sem instalar nada. Comece pelas perguntas de exemplo ou escreva a sua.
 
 ![Resposta do Scout de Tênis IA para o H2H entre Sinner e Alcaraz](docs/resposta-h2h.jpg)
 
@@ -236,7 +240,7 @@ scout-tenis-ia/
 - [x] Avaliação automática com perguntas de referência: 13/13 (meta: ≥ 80%)
 - [x] Elo por superfície com previsão de partidas e validação
 - [x] Gráfico da evolução do Elo ao longo dos anos
-- [ ] Deploy no Streamlit Community Cloud (código pronto; passo a passo em [DEPLOY.md](DEPLOY.md))
+- [x] Deploy no Streamlit Community Cloud: [scout-tenis-ia.streamlit.app](https://scout-tenis-ia.streamlit.app)
 
 O detalhe de cada etapa está no [ROTEIRO.md](ROTEIRO.md).
 
@@ -252,4 +256,4 @@ Dados de tênis de **Jeff Sackmann / [tennis_atp](https://github.com/JeffSackman
 
 ## English summary
 
-**Tennis Scout AI** answers questions about men's professional tennis (ATP) in natural language. An LLM agent (Google Gemini on the free tier, or Anthropic Claude) uses tool use to look up players, write and run read-only SQL against a DuckDB database of 79k ATP matches (2000–2026), and return the answer with Plotly charts and the exact SQL it ran. It also predicts matches and simulates tournaments (Monte Carlo of the ATP Finals format) with a surface-blended Elo rating, validated on 10k matches since 2023 (64.2% accuracy, Brier 0.219, vs. 63.9% for "higher ATP rank wins"). The SQL is restricted to `SELECT`/`WITH` on a read-only connection, failed queries are fed back to the model for self-correction, and 122 tests cover the Elo model, the tools, both agent loops (with fake clients) and a no-API demo mode. On 13 reference questions whose answers are computed by SQL at evaluation time, the agent on Gemini Flash-Lite (free tier) scored 13/13, with zero failed queries. Built with Python, DuckDB, the Google Gen AI and Anthropic SDKs, Streamlit and Plotly. Data by Jeff Sackmann (CC BY-NC-SA 4.0).
+**Tennis Scout AI** answers questions about men's professional tennis (ATP) in natural language. An LLM agent (Google Gemini on the free tier, or Anthropic Claude) uses tool use to look up players, write and run read-only SQL against a DuckDB database of 79k ATP matches (2000–2026), and return the answer with Plotly charts and the exact SQL it ran. It also predicts matches and simulates tournaments (Monte Carlo of the ATP Finals format) with a surface-blended Elo rating, validated on 10k matches since 2023 (64.2% accuracy, Brier 0.219, vs. 63.9% for "higher ATP rank wins"). The SQL is restricted to `SELECT`/`WITH` on a read-only connection, failed queries are fed back to the model for self-correction, and 122 tests cover the Elo model, the tools, both agent loops (with fake clients) and a no-API demo mode. On 13 reference questions whose answers are computed by SQL at evaluation time, the agent on Gemini Flash-Lite (free tier) scored 13/13, with zero failed queries. Built with Python, DuckDB, the Google Gen AI and Anthropic SDKs, Streamlit and Plotly. Data by Jeff Sackmann (CC BY-NC-SA 4.0). Live app: https://scout-tenis-ia.streamlit.app
