@@ -1,0 +1,297 @@
+/* Estilo do Scout de Tênis IA. As variáveis --sc-* são definidas em app.py conforme o tema. */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+html, body, [class*="css"], .stMarkdown, button, input, textarea {
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.block-container {
+    padding-top: 2.2rem;
+    padding-bottom: 6rem;
+    max-width: 1180px;
+}
+
+/* ---------------------------------------------------------------- topo */
+
+.sc-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    padding: 2.4rem 2.4rem 2.1rem;
+    color: #F4FAF5;
+    background:
+        radial-gradient(circle at 88% 18%, rgba(217, 249, 157, 0.20), transparent 32%),
+        linear-gradient(135deg, #0B3B26 0%, #11502F 55%, #1B6B3A 100%);
+    box-shadow: 0 10px 30px rgba(8, 40, 24, 0.25);
+}
+
+/* Linhas de uma quadra, no fundo do lado direito */
+.sc-hero-quadra {
+    position: absolute;
+    right: -40px;
+    top: 50%;
+    width: 380px;
+    height: 230px;
+    transform: translateY(-50%) rotate(-8deg);
+    border: 2px solid rgba(255, 255, 255, 0.16);
+    border-radius: 4px;
+    pointer-events: none;
+}
+.sc-hero-quadra::before {  /* rede */
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -8px;
+    bottom: -8px;
+    border-left: 3px solid rgba(255, 255, 255, 0.22);
+}
+.sc-hero-quadra::after {  /* linhas de saque */
+    content: "";
+    position: absolute;
+    inset: 18% 22%;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    border-top: none;
+    border-bottom: none;
+}
+
+.sc-bola {
+    position: absolute;
+    right: 64px;
+    top: 34px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #F2FFB8, #C5E83A 60%, #9CC21F);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+.sc-bola::before {
+    content: "";
+    position: absolute;
+    inset: 6px -14px 6px 22px;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    clip-path: inset(0 14px 0 0);
+}
+
+.sc-hero-conteudo { position: relative; max-width: 690px; }
+
+.sc-selo {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.28rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #E6F7C8;
+    background: rgba(217, 249, 157, 0.14);
+    border: 1px solid rgba(217, 249, 157, 0.28);
+}
+
+.sc-titulo {
+    margin: 0.85rem 0 0.55rem;
+    font-size: clamp(2rem, 4.2vw, 2.9rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+}
+.sc-titulo span { color: #D9F99D; }
+
+.sc-hero p {
+    margin: 0;
+    font-size: 1.02rem;
+    line-height: 1.55;
+    color: rgba(244, 250, 245, 0.86);
+}
+
+.sc-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.3rem; }
+.sc-chips span {
+    padding: 0.32rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+/* Cabeçalho compacto, durante a conversa */
+.sc-compacto { display: flex; align-items: center; gap: 0.75rem; }
+.sc-compacto .sc-bola-mini {
+    width: 30px; height: 30px; border-radius: 50%; flex: none;
+    background: radial-gradient(circle at 35% 30%, #F2FFB8, #C5E83A 60%, #9CC21F);
+}
+.sc-compacto b { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.01em; }
+.sc-compacto small { display: block; color: var(--sc-texto-suave); font-size: 0.82rem; }
+
+.st-key-campo-inicio { margin-top: 1rem; }
+
+/* ---------------------------------------------------------------- aviso do modo demonstração */
+
+.sc-aviso {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    margin-top: 1rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: 14px;
+    background: var(--sc-acento-suave);
+    border: 1px solid var(--sc-acento-borda);
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+.sc-aviso b { color: var(--sc-acento); }
+
+/* ---------------------------------------------------------------- números */
+
+.sc-numeros {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin: 1.4rem 0 0.4rem;
+}
+.sc-numero {
+    padding: 1rem 1.15rem;
+    border-radius: 16px;
+    background: var(--sc-card);
+    border: 1px solid var(--sc-borda);
+    box-shadow: var(--sc-sombra);
+}
+.sc-numero small {
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sc-texto-suave);
+}
+.sc-numero b {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: clamp(1.1rem, 2.1vw, 1.55rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sc-numero span { font-size: 0.82rem; color: var(--sc-texto-suave); }
+.sc-numero.destaque { border-color: var(--sc-acento-borda); background: var(--sc-acento-suave); }
+.sc-numero.destaque b { color: var(--sc-acento); }
+
+/* ---------------------------------------------------------------- perguntas de exemplo */
+
+.sc-secao { margin: 1.6rem 0 0.2rem; font-size: 1.15rem; font-weight: 800; }
+.sc-secao-sub { margin: 0 0 0.6rem; font-size: 0.9rem; color: var(--sc-texto-suave); }
+
+.sc-grupo {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0.6rem 0 0.35rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sc-acento);
+}
+.sc-grupo::after { content: ""; flex: 1; border-top: 1px solid var(--sc-borda); }
+
+[class*="st-key-grupo-"] button {
+    justify-content: flex-start;
+    min-height: 3.35rem;
+    padding: 0.7rem 1rem;
+    border-radius: 14px;
+    background: var(--sc-card);
+    border: 1px solid var(--sc-borda);
+    box-shadow: var(--sc-sombra);
+    transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+[class*="st-key-grupo-"] button:hover {
+    transform: translateY(-1px);
+    border-color: var(--sc-acento);
+    box-shadow: 0 6px 18px var(--sc-acento-suave);
+    color: inherit;
+}
+[class*="st-key-grupo-"] button > div,
+[data-testid="stSidebar"] [class*="st-key-lateral-"] button > div { justify-content: flex-start; gap: 0.6rem; }
+[class*="st-key-grupo-"] button p { text-align: left; font-weight: 500; font-size: 0.95rem; }
+[data-testid="stSidebar"] [class*="st-key-lateral-"] button p { text-align: left; }
+[data-testid="stSidebar"] [class*="st-key-lateral-"] button [data-testid="stIconMaterial"] { color: var(--sc-acento); }
+[class*="st-key-grupo-"] button [data-testid="stIconMaterial"] { color: var(--sc-acento); font-size: 1.25rem; }
+
+/* ---------------------------------------------------------------- como funciona */
+
+.sc-passos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-top: 1.6rem;
+}
+.sc-passo {
+    padding: 0.95rem 1.1rem;
+    border-radius: 16px;
+    border: 1px dashed var(--sc-borda);
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--sc-texto-suave);
+}
+.sc-passo b { display: block; margin-bottom: 0.15rem; font-size: 0.95rem; color: var(--sc-texto); }
+.sc-passo i {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.6rem; height: 1.6rem; margin-bottom: 0.45rem;
+    border-radius: 50%; font-style: normal; font-weight: 800; font-size: 0.8rem;
+    color: var(--sc-no-acento); background: var(--sc-acento);
+}
+
+/* ---------------------------------------------------------------- conversa */
+
+[data-testid="stChatMessage"] {
+    padding: 1rem 1.15rem;
+    border-radius: 16px;
+}
+/* Usuário: avatar de ícone (testid "Custom"); assistente: avatar de emoji, sem testid */
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarCustom"]) {
+    background: var(--sc-acento-suave);
+    border: 1px solid var(--sc-acento-borda);
+}
+[data-testid="stChatMessage"]:not(:has([data-testid="stChatMessageAvatarCustom"])) {
+    background: var(--sc-card);
+    border: 1px solid var(--sc-borda);
+    box-shadow: var(--sc-sombra);
+}
+[data-testid="stChatMessage"] h1, [data-testid="stChatMessage"] h2,
+[data-testid="stChatMessage"] h3, [data-testid="stChatMessage"] h4 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding: 0.6rem 0 0.2rem;
+}
+[data-testid="stChatInput"] { border-radius: 16px; }
+
+/* ---------------------------------------------------------------- barra lateral e rodapé */
+
+.sc-lateral-marca { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem; }
+.sc-lateral-marca b { font-size: 1.05rem; font-weight: 800; }
+
+.sc-rodape {
+    margin-top: 2.2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sc-borda);
+    font-size: 0.8rem;
+    color: var(--sc-texto-suave);
+    text-align: center;
+}
+.sc-rodape a { color: var(--sc-acento); text-decoration: none; font-weight: 600; }
+
+/* ---------------------------------------------------------------- celular */
+
+@media (max-width: 720px) {
+    .block-container { padding-top: 1rem; }
+    .sc-hero { padding: 1.6rem 1.3rem; border-radius: 16px; }
+    .sc-hero-quadra, .sc-bola { display: none; }
+    .sc-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+    .sc-numero { padding: 0.8rem 0.9rem; }
+    .sc-numero b { font-size: 1.15rem; }
+    .sc-passos { grid-template-columns: 1fr; }
+}

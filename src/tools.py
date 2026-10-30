@@ -11,6 +11,7 @@ import plotly.express as px
 
 from src.db import cursor
 from src.elo import RATING_INICIAL, combinar, prob_vitoria
+from src.elo import simular_torneio as _simular
 
 LIMITE_LINHAS = 200
 TIMEOUT_SEGUNDOS = 20
@@ -272,6 +273,56 @@ def _avisos_previsao(*jogadores: dict[str, Any]) -> list[str]:
     ]
 
 
+# ---------------------------------------------------------------- simular_torneio
+
+SIMULACOES = 20_000
+
+
+def simular_torneio(jogadores_ids: list[int], superficie: str) -> dict[str, Any]:
+    """Chance de cada jogador ser campeão, simulando o torneio 20 mil vezes pelo Elo.
+
+    `jogadores_ids` em ordem de cabeça de chave (ex.: pelo ranking). Com 8 jogadores,
+    usa o formato do ATP Finals (grupos + semifinais + final); com 4, 16 ou 32, mata-mata.
+    Devolve {superficie, formato, simulacoes, jogadores (do maior para o menor
+    prob_titulo, com prob_semifinal e prob_final), avisos, erro}.
+    """
+    if superficie not in SUPERFICIES_PREVISAO:
+        return {"erro": f"Superfície inválida: {superficie}. Use uma de {', '.join(SUPERFICIES_PREVISAO)}."}
+    ids = [int(j) for j in jogadores_ids]
+    if len(set(ids)) != len(ids):
+        return {"erro": "Há jogadores repetidos na lista."}
+    if len(ids) not in (4, 8, 16, 32):
+        return {"erro": "Passe 4, 8, 16 ou 32 jogadores (o ATP Finals tem 8)."}
+    try:
+        elos = [_elo_do_jogador(j, superficie) for j in ids]
+    except duckdb.CatalogException:
+        return {"erro": "Tabela de Elo não encontrada. Rode: python scripts/calcular_elo.py"}
+    faltando = [str(j) for j, dados in zip(ids, elos) if dados is None]
+    if faltando:
+        return {"erro": f"Sem Elo para o(s) player_id {', '.join(faltando)}: confira com buscar_jogador."}
+
+    chances = _simular([e["elo_combinado"] for e in elos], SIMULACOES)
+    jogadores = [
+        {"nome": e["nome"], "player_id": e["player_id"], "cabeca_de_chave": n, "elo_combinado": e["elo_combinado"],
+         "prob_semifinal": round(c["semifinal"], 3), "prob_final": round(c["final"], 3),
+         "prob_titulo": round(c["titulo"], 3)}
+        for n, (e, c) in enumerate(zip(elos, chances), start=1)
+    ]
+    jogadores.sort(key=lambda j: j["prob_titulo"], reverse=True)
+    formato = "grupos + mata-mata (ATP Finals)" if len(ids) == 8 else "mata-mata"
+    return {
+        "superficie": superficie,
+        "formato": formato,
+        "simulacoes": SIMULACOES,
+        "jogadores": jogadores,
+        "avisos": [
+            f"Estimativa: {SIMULACOES:,} simulações do torneio com o Elo atual de cada jogador.".replace(",", "."),
+            "Não considera lesões, desistências, forma futura nem o desempate real dos grupos (sets e games).",
+        ],
+        "erro": None,
+    }
+
+
 # ---------------------------------------------------------------- definições para a API
 
 TOOLS_SCHEMA: list[dict[str, Any]] = [
@@ -370,10 +421,38 @@ TOOLS_SCHEMA.append({
     },
 })
 
+TOOLS_SCHEMA.append({
+    "name": "simular_torneio",
+    "description": (
+        "Simula um torneio 20 mil vezes pelo rating Elo e devolve a chance de cada jogador chegar à "
+        "semifinal, à final e ser campeão. Use quando o usuário perguntar quem vai ganhar um torneio ou "
+        "quem é favorito ao título. Para o ATP Finals, passe os 8 primeiros do ranking mais recente, em "
+        "ordem de posição, na superfície Hard (formato de grupos + semifinais + final). Para outros "
+        "torneios, passe 4, 16 ou 32 candidatos em ordem de cabeça de chave (mata-mata). Repasse os avisos."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "jogadores_ids": {
+                "type": "array",
+                "items": {"type": "integer"},
+                "description": "player_id dos participantes, do cabeça de chave 1 em diante (4, 8, 16 ou 32).",
+            },
+            "superficie": {
+                "type": "string",
+                "enum": list(SUPERFICIES_PREVISAO),
+                "description": "Hard = quadra dura (ATP Finals), Clay = saibro, Grass = grama.",
+            },
+        },
+        "required": ["jogadores_ids", "superficie"],
+    },
+})
+
 FUNCOES: dict[str, Any] = {
     "listar_tabelas": listar_tabelas,
     "buscar_jogador": buscar_jogador,
     "consultar_sql": consultar_sql,
     "gerar_grafico": gerar_grafico,
     "prever_partida": prever_partida,
+    "simular_torneio": simular_torneio,
 }

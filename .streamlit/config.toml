@@ -4,3 +4,23 @@ toolbarMode = "minimal"  # esconde o botão "Deploy" e o menu de desenvolvedor d
 
 [browser]
 gatherUsageStats = false
+
+# Tema de tênis: verde de quadra no claro, verde-limão de bola no escuro.
+# Com [theme.light] e [theme.dark], o app segue o tema do sistema do visitante.
+[theme]
+baseRadius = "0.75rem"
+headingFontWeights = [800, 700, 700, 600, 600, 600]
+
+[theme.light]
+primaryColor = "#15803D"
+backgroundColor = "#F7F9F5"
+secondaryBackgroundColor = "#EAF0E6"
+textColor = "#132018"
+borderColor = "#D5DFD1"
+
+[theme.dark]
+primaryColor = "#A3E635"
+backgroundColor = "#0B130F"
+secondaryBackgroundColor = "#14201A"
+textColor = "#E6EEE8"
+borderColor = "#25362C"

@@ -11,7 +11,7 @@ import httpx
 from google import genai
 from google.genai import errors, types
 
-from src.agente import MAX_ITERACOES, MAX_TOKENS, executar_tool, novo_resultado, registrar
+from src.agente import MAX_ITERACOES, MAX_TOKENS, executar_tool, limite_atingido, novo_resultado, registrar
 from src.prompts import montar_system_prompt
 from src.tools import TOOLS_SCHEMA
 
@@ -83,7 +83,7 @@ class AgenteGemini:
                 registrar(resultado, "aviso", texto=f"finish_reason={motivo}")
             return resultado
 
-        return resultado  # inalcançável: a última volta sempre termina sem tools
+        return limite_atingido(resultado)
 
     # ------------------------------------------------------------ chamada à API
 

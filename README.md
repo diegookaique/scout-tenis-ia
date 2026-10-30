@@ -8,7 +8,7 @@
 ![Claude API](https://img.shields.io/badge/Claude_API-tool_use-D97757?logo=anthropic&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-app-FF4B4B?logo=streamlit&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-gráficos-3F4F75?logo=plotly&logoColor=white)
-![Testes](https://img.shields.io/badge/testes-106_passando-2EA44F)
+![Testes](https://img.shields.io/badge/testes-117_passando-2EA44F)
 
 ![Resposta do Scout de Tênis IA para o H2H entre Sinner e Alcaraz](docs/resposta-h2h.jpg)
 
@@ -22,15 +22,17 @@
 
 ## Exemplos de perguntas
 
-| Pergunta | Resposta (dados até 25/05/2026) |
-|---|---|
-| Qual o H2H entre Sinner e Alcaraz por superfície? | Sinner 7 × 10 Alcaraz (saibro 2–3, grama 2–0, quadra dura 3–7) |
-| Quem mais venceu Grand Slams desde 2000? | Novak Djokovic, 24 títulos |
-| Quantos aces o Isner fez em 2015? | 1.260 aces em 70 partidas |
-| Qual o retrospecto do João Fonseca por superfície? | 54 vitórias em 88 partidas (61,4%) |
-| Sinner × Alcaraz na grama: quem é favorito? | Sinner, com 50,7% de chance (praticamente empate) |
-| Quem tem o maior Elo no saibro hoje? | Carlos Alcaraz (2.071), seguido de Sinner (2.024) |
-| Como evoluiu o Elo do Big 3 ao longo dos anos? | Pico de Djokovic em 2015 (2.414), o maior dos três |
+As 10 perguntas da tela inicial, em duas colunas:
+
+| Previsões 2026 | Resposta | Temporada em números | Resposta |
+|---|---|---|---|
+| Quem vai ganhar o ATP Finals de 2026? | Sinner, 55,8% (20 mil simulações) | Quem tem o melhor aproveitamento em 2026? | Sinner, 92,5% (37–3) |
+| Quem vai terminar 2026 como número 1? | Sinner: lidera pontos, aproveitamento, títulos e Elo | Quem fez mais aces em 2026? | Taylor Fritz, 324 |
+| Quem é o favorito para Wimbledon 2026? | Sinner e Alcaraz, quase empatados no Elo de grama | Sinner × Alcaraz: como está o confronto direto? | Alcaraz 10 × 7 |
+| Sinner × Alcaraz no saibro: quem é favorito? | Sinner, 52,2% | Como o João Fonseca evoluiu no ranking? | Do 730º (jan/2024) ao 25º, melhor posição 24º |
+| Quem são as revelações de 2026? | Rafael Jodar, +281 de Elo | Como evoluiu o Elo de Sinner, Alcaraz e Djokovic? | Sinner lidera em 2026 (2.282) |
+
+Dados até 25/05/2026 (ranking até 08/06/2026). Previsões são estimativas do modelo Elo, não certezas.
 
 ## Como funciona
 
@@ -55,10 +57,12 @@ flowchart LR
     T --> G[gerar_grafico]
     T --> L[listar_tabelas]
     T --> P[prever_partida]
+    T --> M[simular_torneio]
     B --> D[(DuckDB<br/>tenis.duckdb)]
     Q --> D
     L --> D
     P --> D
+    M --> D
     A -->|texto + gráficos + SQL| S
 ```
 
@@ -80,6 +84,7 @@ Um exemplo do caminho que o agente faz:
 | `consultar_sql(sql)` | Executa uma consulta de leitura, com limite de 200 linhas e timeout de 20 s |
 | `gerar_grafico(dados, tipo, x, y, titulo)` | Gráfico Plotly de barra, linha, dispersão ou radar |
 | `prever_partida(jogador_a_id, jogador_b_id, superficie)` | Chance de vitória de cada jogador pelo Elo, com avisos de confiabilidade |
+| `simular_torneio(jogadores_ids, superficie)` | Simula o torneio 20 mil vezes (Monte Carlo) e dá a chance de semifinal, final e título de cada um. Com 8 jogadores, usa o formato do ATP Finals (2 grupos de 4, semifinais cruzadas e final) |
 
 ### Segurança e confiabilidade
 
@@ -134,7 +139,7 @@ O Elo acerta o vencedor tanto quanto o ranking ATP, mas entrega uma **probabilid
 
 ## Modo demonstração (sem chave da API)
 
-Sem nenhuma chave de IA, o app abre em **modo demonstração**: as 9 perguntas de exemplo (na tela inicial e na barra lateral) são respondidas por consultas prontas, que passam pelas mesmas tools e pelo mesmo banco, só que sem a IA. Assim dá para explorar a interface e os gráficos sem custo. Com a chave, o mesmo app passa a usar o agente e aceita qualquer pergunta.
+Sem nenhuma chave de IA, o app abre em **modo demonstração**: as 10 perguntas de exemplo (na tela inicial e na barra lateral) são respondidas por consultas prontas, que passam pelas mesmas tools e pelo mesmo banco, só que sem a IA. Assim dá para explorar a interface e os gráficos sem custo. Com a chave, o mesmo app passa a usar o agente e aceita qualquer pergunta. Se a IA estiver indisponível (por exemplo, no limite do plano gratuito), as perguntas de exemplo continuam respondendo com essas consultas prontas.
 
 ![Gráfico radar do João Fonseca por superfície](docs/radar-fonseca.jpg)
 
@@ -178,21 +183,22 @@ No plano gratuito do Gemini há limite de pedidos por minuto e por dia. Se passa
 | `python -m src.agente` | Conversa com o agente no terminal (precisa da chave) |
 | `python scripts/calcular_elo.py` | Recalcula só o Elo e imprime a validação |
 | `python scripts/avaliar.py` | Avalia o agente nas 13 perguntas de referência e gera `avaliacao.md` (precisa da chave) |
-| `pytest` | Roda os 106 testes (nenhum chama a API) |
+| `pytest` | Roda os 117 testes (nenhum chama a API) |
 
 ## Estrutura do projeto
 
 ```
 scout-tenis-ia/
 ├── app.py                  # interface Streamlit
+├── assets/estilo.css       # visual do app (tema de tênis, claro e escuro)
 ├── scripts/
 │   ├── carregar_dados.py   # baixa os CSVs e monta o tenis.duckdb
 │   ├── calcular_elo.py     # Elo histórico por superfície e validação
 │   └── avaliar.py          # avaliação do agente nas perguntas de referência
 ├── src/
 │   ├── db.py               # conexão read-only com o DuckDB
-│   ├── elo.py              # matemática do Elo, previsão e métricas
-│   ├── tools.py            # as 5 tools e o TOOLS_SCHEMA (formato Anthropic, convertido p/ Gemini)
+│   ├── elo.py              # matemática do Elo, previsão, métricas e simulação de torneio
+│   ├── tools.py            # as 6 tools e o TOOLS_SCHEMA (formato Anthropic, convertido p/ Gemini)
 │   ├── prompts.py          # prompt de sistema, glossário e exemplos few-shot
 │   ├── agente.py           # loop de tool use com a Claude API (AgenteTenis) e modo terminal
 │   ├── agente_gemini.py    # o mesmo loop com a Gemini API (AgenteGemini)
@@ -208,9 +214,9 @@ scout-tenis-ia/
 
 ## Testes
 
-106 testes com `pytest`, sem chamadas à API:
+117 testes com `pytest`, sem chamadas à API:
 
-- **Elo:** probabilidades da fórmula, conservação dos pontos com K fixo, previsão usando só partidas anteriores e métricas (acerto, Brier).
+- **Elo:** probabilidades da fórmula, conservação dos pontos com K fixo, previsão usando só partidas anteriores, métricas (acerto, Brier) e simulação de torneio (chances somam 100%, favorito ganha mais, resultado reproduzível).
 - **Tools:** previsão simétrica e com probabilidades somando 100%, avisos de poucas partidas, busca de jogador com e sem acento e com erro de digitação, limite de linhas, datas serializáveis, todos os tipos de gráfico e bloqueio de escrita (`DROP`, `DELETE`, `INSERT`, `CREATE`, `COPY`, `ATTACH`, leitura de arquivos, múltiplos comandos).
 - **Agentes (Claude e Gemini):** um cliente falso roteiriza as respostas do modelo para testar o loop, a autocorreção depois de um SQL com erro, o limite de iterações, o histórico e os parâmetros da requisição.
 - **Provedores:** escolha do provedor pelas chaves e mensagens claras para chave recusada e limite gratuito atingido.
@@ -242,4 +248,4 @@ Dados de tênis de **Jeff Sackmann / [tennis_atp](https://github.com/JeffSackman
 
 ## English summary
 
-**Tennis Scout AI** answers questions about men's professional tennis (ATP) in natural language. An LLM agent (Google Gemini on the free tier, or Anthropic Claude) uses tool use to look up players, write and run read-only SQL against a DuckDB database of 79k ATP matches (2000–2026), and return the answer with Plotly charts and the exact SQL it ran. It also predicts matches with a surface-blended Elo rating, validated on 10k matches since 2023 (64.2% accuracy, Brier 0.219, vs. 63.9% for "higher ATP rank wins"). The SQL is restricted to `SELECT`/`WITH` on a read-only connection, failed queries are fed back to the model for self-correction, and 106 tests cover the Elo model, the tools, both agent loops (with fake clients) and a no-API demo mode. On 13 reference questions whose answers are computed by SQL at evaluation time, the agent on Gemini Flash-Lite (free tier) scored 13/13, with zero failed queries. Built with Python, DuckDB, the Google Gen AI and Anthropic SDKs, Streamlit and Plotly. Data by Jeff Sackmann (CC BY-NC-SA 4.0).
+**Tennis Scout AI** answers questions about men's professional tennis (ATP) in natural language. An LLM agent (Google Gemini on the free tier, or Anthropic Claude) uses tool use to look up players, write and run read-only SQL against a DuckDB database of 79k ATP matches (2000–2026), and return the answer with Plotly charts and the exact SQL it ran. It also predicts matches and simulates tournaments (Monte Carlo of the ATP Finals format) with a surface-blended Elo rating, validated on 10k matches since 2023 (64.2% accuracy, Brier 0.219, vs. 63.9% for "higher ATP rank wins"). The SQL is restricted to `SELECT`/`WITH` on a read-only connection, failed queries are fed back to the model for self-correction, and 117 tests cover the Elo model, the tools, both agent loops (with fake clients) and a no-API demo mode. On 13 reference questions whose answers are computed by SQL at evaluation time, the agent on Gemini Flash-Lite (free tier) scored 13/13, with zero failed queries. Built with Python, DuckDB, the Google Gen AI and Anthropic SDKs, Streamlit and Plotly. Data by Jeff Sackmann (CC BY-NC-SA 4.0).

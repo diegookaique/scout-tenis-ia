@@ -78,7 +78,7 @@ class AgenteTenis:
                 registrar(resultado, "aviso", texto=f"stop_reason={resposta.stop_reason}")
             return resultado
 
-        return resultado  # inalcançável: a última volta sempre termina sem tools
+        return limite_atingido(resultado)
 
     # ------------------------------------------------------------ chamada à API
 
@@ -229,3 +229,14 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def limite_atingido(resultado: dict[str, Any]) -> dict[str, Any]:
+    """O modelo pediu tools até a última volta (as tools ficam desligadas nela, mas há
+    modelos que insistem): devolve um aviso em vez de uma resposta vazia."""
+    resultado["resposta_texto"] = (
+        f"⚠️ Não consegui concluir a resposta em {MAX_ITERACOES} etapas. "
+        "Tente uma pergunta mais específica ou divida em partes."
+    )
+    registrar(resultado, "aviso", texto="limite de iterações atingido")
+    return resultado

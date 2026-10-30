@@ -13,6 +13,7 @@ from src.tools import (
     gerar_grafico,
     listar_tabelas,
     prever_partida,
+    simular_torneio,
 )
 
 pytestmark = pytest.mark.skipif(not CAMINHO_BANCO.exists(), reason="tenis.duckdb não encontrado")
@@ -176,7 +177,8 @@ def test_prever_partida_entradas_invalidas(a, b, superficie):
 
 def test_tools_schema_formato_anthropic():
     nomes = {tool["name"] for tool in TOOLS_SCHEMA}
-    assert nomes == {"listar_tabelas", "buscar_jogador", "consultar_sql", "gerar_grafico", "prever_partida"}
+    assert nomes == {"listar_tabelas", "buscar_jogador", "consultar_sql", "gerar_grafico", "prever_partida",
+                     "simular_torneio"}
     for tool in TOOLS_SCHEMA:
         assert tool["description"]
         assert tool["input_schema"]["type"] == "object"
@@ -192,3 +194,32 @@ def test_elo_atual_e_o_rating_depois_da_ultima_partida():
         WHERE e.rating <> a.rating
     """)
     assert divergentes["linhas"][0][0] == 0
+
+
+# ---------------------------------------------------------------- simular_torneio
+
+TOP8 = [206173, 207989, 100644, 200000, 210097, 200282, 104925, 106421]
+
+
+def test_simular_torneio_finals():
+    r = simular_torneio(TOP8, "Hard")
+    assert r["erro"] is None and r["formato"].startswith("grupos")
+    probs = [j["prob_titulo"] for j in r["jogadores"]]
+    assert probs == sorted(probs, reverse=True)
+    assert sum(probs) == pytest.approx(1, abs=0.01)
+    for j in r["jogadores"]:
+        assert j["prob_semifinal"] >= j["prob_final"] >= j["prob_titulo"]
+
+
+def test_simular_torneio_e_reproduzivel():
+    assert simular_torneio(TOP8, "Clay") == simular_torneio(TOP8, "Clay")
+
+
+@pytest.mark.parametrize(("ids", "superficie"), [
+    (TOP8[:3], "Hard"),             # número de jogadores inválido
+    (TOP8[:7] + TOP8[:1], "Hard"),  # repetido
+    (TOP8, "Carpet"),               # superfície sem previsão
+    (TOP8[:7] + [999999999], "Hard"),  # jogador sem Elo
+])
+def test_simular_torneio_entradas_invalidas(ids, superficie):
+    assert simular_torneio(ids, superficie)["erro"]

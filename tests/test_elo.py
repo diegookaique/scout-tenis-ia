@@ -53,3 +53,29 @@ def test_metricas():
     assert m["partidas"] == 4
     assert m["acuracia"] == pytest.approx(2.5 / 4)  # 0.5 conta meio acerto
     assert m["brier"] == pytest.approx((0.04 + 0.16 + 0.36 + 0.25) / 4)
+
+
+def test_simulacao_favorito_ganha_mais_e_probabilidades_somam():
+    from src.elo import simular_torneio
+
+    for ratings in ([2200, 2000, 1900, 1800, 1800, 1700, 1700, 1600], [2000, 1900, 1800, 1700]):
+        r = simular_torneio(ratings, simulacoes=5_000)
+        titulos = [x["titulo"] for x in r]
+        assert titulos[0] == max(titulos)
+        assert sum(titulos) == pytest.approx(1)
+        assert sum(x["final"] for x in r) == pytest.approx(2)
+        assert sum(x["semifinal"] for x in r) == pytest.approx(4)
+
+
+def test_simulacao_jogadores_iguais_tem_chances_parecidas():
+    from src.elo import simular_torneio
+
+    r = simular_torneio([1800] * 8, simulacoes=20_000)
+    assert all(abs(x["titulo"] - 1 / 8) < 0.015 for x in r)
+
+
+def test_simulacao_rejeita_tamanho_invalido():
+    from src.elo import simular_torneio
+
+    with pytest.raises(ValueError):
+        simular_torneio([1500, 1500, 1500])

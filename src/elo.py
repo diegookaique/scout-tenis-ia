@@ -9,6 +9,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from datetime import date
+import random
 from math import log
 
 RATING_INICIAL = 1500.0
@@ -117,3 +118,68 @@ def metricas(probs_do_vencedor: list[float]) -> dict[str, float]:
     brier = sum((1 - p) ** 2 for p in probs_do_vencedor) / n
     perda = -sum(log(max(p, 1e-12)) for p in probs_do_vencedor) / n
     return {"partidas": n, "acuracia": acertos / n, "brier": brier, "log_loss": perda}
+
+
+# ---------------------------------------------------------------- simulação de torneio
+
+FASES = ("semifinal", "final", "titulo")
+
+
+def simular_torneio(ratings: list[float], simulacoes: int = 20_000, semente: int = 42) -> list[dict[str, float]]:
+    """Monte Carlo de um torneio; `ratings` em ordem de cabeça de chave.
+
+    Com 8 jogadores, usa o formato do ATP Finals: dois grupos de 4 em todos contra
+    todos (1-4-5-8 e 2-3-6-7), os dois melhores de cada grupo nas semifinais cruzadas
+    e a final. Com outra potência de 2, é mata-mata com o 1 e o 2 em lados opostos.
+    Devolve, para cada jogador, a fração das simulações em que chegou à semifinal,
+    à final e ao título. A semente fixa torna o resultado reproduzível.
+    """
+    n = len(ratings)
+    if n < 4 or n > 32 or n & (n - 1):
+        raise ValueError("O torneio precisa de 4, 8, 16 ou 32 jogadores.")
+    rng = random.Random(semente)
+    contagem = [dict.fromkeys(FASES, 0) for _ in ratings]
+
+    def jogo(a: int, b: int) -> int:
+        return a if rng.random() < prob_vitoria(ratings[a], ratings[b]) else b
+
+    for _ in range(simulacoes):
+        semifinalistas = _fase_de_grupos(jogo, rng) if n == 8 else _mata_mata_ate(jogo, _chave(n), 4)
+        for j in semifinalistas:
+            contagem[j]["semifinal"] += 1
+        finalistas = [jogo(semifinalistas[0], semifinalistas[1]), jogo(semifinalistas[2], semifinalistas[3])]
+        for j in finalistas:
+            contagem[j]["final"] += 1
+        contagem[jogo(*finalistas)]["titulo"] += 1
+    return [{fase: c[fase] / simulacoes for fase in FASES} for c in contagem]
+
+
+def _fase_de_grupos(jogo, rng: random.Random) -> list[int]:
+    """Grupos do ATP Finals; devolve [1º A, 2º B, 1º B, 2º A] (semifinais cruzadas)."""
+    classificados = []
+    for grupo in ((0, 3, 4, 7), (1, 2, 5, 6)):
+        vitorias = dict.fromkeys(grupo, 0)
+        for i, a in enumerate(grupo):
+            for b in grupo[i + 1:]:
+                vitorias[jogo(a, b)] += 1
+        # Empate em vitórias: desempate aleatório (o real usa sets e games, que não simulamos)
+        ordem = sorted(grupo, key=lambda j: (vitorias[j], rng.random()), reverse=True)
+        classificados.append(ordem[:2])
+    (a1, a2), (b1, b2) = classificados
+    return [a1, b2, b1, a2]
+
+
+def _chave(n: int) -> list[int]:
+    """Ordem da chave com cabeças de chave: para 8, [0, 7, 3, 4, 1, 6, 2, 5]."""
+    ordem = [0]
+    while len(ordem) < n:
+        tamanho = len(ordem) * 2
+        ordem = [x for semente in ordem for x in (semente, tamanho - 1 - semente)]
+    return ordem
+
+
+def _mata_mata_ate(jogo, chave: list[int], restantes: int) -> list[int]:
+    """Joga as rodadas da chave até sobrarem `restantes` jogadores, na ordem da chave."""
+    while len(chave) > restantes:
+        chave = [jogo(chave[i], chave[i + 1]) for i in range(0, len(chave), 2)]
+    return chave

@@ -163,3 +163,12 @@ def test_todos_sobrecarregados_levanta_o_erro():
     cliente = ClienteFalso(*[_sobrecarga() for _ in range(len(MODELOS_RESERVA) + 1)])
     with pytest.raises(errors.ServerError):
         AgenteGemini(modelo="principal", client=cliente).perguntar("Pergunta")
+
+
+def test_modelo_que_insiste_em_tools_recebe_aviso_e_nao_resposta_vazia():
+    # Mesmo com as tools desligadas na última volta, o modelo continua chamando
+    cliente = ClienteFalso(*[resposta(chamada(f"c{i}", "listar_tabelas", {})) for i in range(MAX_ITERACOES)])
+    r = AgenteGemini(client=cliente).perguntar("Pergunta difícil")
+
+    assert r["resposta_texto"].startswith("⚠️ Não consegui concluir")
+    assert r["historico"] == []
