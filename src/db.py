@@ -6,6 +6,9 @@ from pathlib import Path
 import duckdb
 
 CAMINHO_BANCO = Path(__file__).resolve().parent.parent / "tenis.duckdb"
+# Toda conexão do app usa esta configuração: o DuckDB recusa, no mesmo processo, duas
+# conexões ao mesmo arquivo com configurações diferentes
+CONFIG_LEITURA = {"enable_external_access": False}
 
 
 @lru_cache(maxsize=1)
@@ -16,7 +19,7 @@ def conectar() -> duckdb.DuckDBPyConnection:
             f"Banco não encontrado em {CAMINHO_BANCO}. Rode: python scripts/carregar_dados.py"
         )
     return duckdb.connect(
-        str(CAMINHO_BANCO), read_only=True, config={"enable_external_access": False}
+        str(CAMINHO_BANCO), read_only=True, config=CONFIG_LEITURA
     )
 
 

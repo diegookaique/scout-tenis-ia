@@ -1,10 +1,12 @@
-duckdb
-pandas
-anthropic
-google-genai
-streamlit
-plotly
-python-dotenv
-requests
-pytest
-pyyaml
+# Versões fixas: o Streamlit Community Cloud instala exatamente estas
+duckdb==2.0.0
+pandas==3.1.0
+anthropic==2.3.0
+google-genai==2.33.0
+httpx==0.28.1
+streamlit==1.66.1
+plotly==7.1.0
+python-dotenv==1.2.4
+requests==2.34.2
+PyYAML==6.0.3
+pytest==9.2.0

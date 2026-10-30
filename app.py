@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 
 from src.db import cursor
 from src.demo import GRUPOS_EXEMPLO, ICONES_EXEMPLO, AgenteDemo
+from src.preparo import banco_pronto, preparar_banco
 from src.provedores import NOMES, VARIAVEIS, criar_agente, descrever_erro, escolher_provedor
 
 load_dotenv()
@@ -43,6 +44,17 @@ CORES_TEMA = {
 
 st.set_page_config(page_title="Scout de Tênis IA", page_icon="🎾", layout="wide",
                    initial_sidebar_state="collapsed")
+
+
+# ---------------------------------------------------------------- banco
+
+
+@st.cache_resource(show_spinner="Preparando o banco de dados pela primeira vez: baixando 79 mil partidas "
+                                "e calculando o Elo. Leva cerca de 1 a 2 minutos e só acontece uma vez.")
+def garantir_banco() -> None:
+    """No servidor o banco não vem do GitHub: monta na primeira visita (uma vez por servidor)."""
+    if not banco_pronto():
+        preparar_banco()
 
 
 # ---------------------------------------------------------------- agente
@@ -257,7 +269,7 @@ def como_funciona() -> None:
 
 def cabecalho_compacto() -> None:
     """Durante a conversa: nome do app e botão de nova conversa."""
-    texto, botao = st.columns([5, 1], vertical_alignment="center")
+    texto, botao = st.columns([4, 1.3], vertical_alignment="center")
     texto.markdown('<div class="sc-compacto"><div class="sc-bola-mini"></div><div><b>Scout de Tênis IA</b>'
                    '<small>Circuito masculino (ATP) · dados reais consultados com SQL</small></div></div>',
                    unsafe_allow_html=True)
@@ -303,6 +315,12 @@ def barra_lateral(ia: str) -> str | None:
 def main() -> None:
     iniciar_estado()
     aplicar_estilo()
+    try:
+        garantir_banco()
+    except Exception as erro:
+        st.error(f"Não foi possível preparar o banco de dados ({type(erro).__name__}: {erro}). "
+                 "Recarregue a página em alguns minutos.")
+        st.stop()
     provedor, chave = ler_provedor()
     agente = carregar_agente(provedor, chave)
     modo_demo = isinstance(agente, AgenteDemo)
