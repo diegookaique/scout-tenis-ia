@@ -160,6 +160,8 @@ def gerar_grafico(
     if tipo == "barra":
         fig = px.bar(df, x=x, y=y, color=serie, barmode="group", color_discrete_sequence=CORES)
     elif tipo == "linha":
+        # Ordena pelo eixo x: com linhas fora de ordem, a linha "voltaria" no tempo
+        df = df.sort_values([c for c in (serie, x) if c], kind="stable")
         fig = px.line(df, x=x, y=y, color=serie, markers=True, color_discrete_sequence=CORES)
     elif tipo == "dispersao":
         fig = px.scatter(df, x=x, y=y, color=serie, color_discrete_sequence=CORES)

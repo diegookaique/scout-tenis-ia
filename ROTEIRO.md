@@ -257,7 +257,7 @@ vitória. Registre a tool no TOOLS_SCHEMA e atualize o prompt de sistema.
 ### Etapa 7: publicação (dias 13–14)
 
 - [x] README completo
-- [ ] GIF de demonstração (ScreenToGif ou similar)
+- [x] GIF de demonstração (`docs/demo.gif`, capturado com o Edge headless)
 - [x] Deploy no Streamlit Community Cloud: https://scout-tenis-ia.streamlit.app (código pronto: banco montado na 1ª execução por `src/preparo.py`, versões fixas e chave em `st.secrets`; passo a passo em `DEPLOY.md`)
 - [ ] Post no LinkedIn
 

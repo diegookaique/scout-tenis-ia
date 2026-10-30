@@ -121,6 +121,16 @@ FROM partidas_jogador
 WHERE ano = 2023
 GROUP BY player_id ORDER BY aces DESC NULLS LAST LIMIT 10;
 
+Pergunta: Como evoluiu o Elo de Sinner e Alcaraz? (Elo de fim de ano, uma linha por jogador)
+(buscar_jogador("Sinner") → 206173; buscar_jogador("Alcaraz") → 207989)
+SELECT year(e.data) AS ano, any_value(j.nome_completo) AS jogador,
+       round(arg_max(e.rating, e.partidas)) AS elo
+FROM elo e JOIN jogadores j USING (player_id)
+WHERE e.superficie = 'Geral' AND e.player_id IN (206173, 207989)
+GROUP BY e.player_id, year(e.data)
+ORDER BY jogador, ano;
+(depois: gerar_grafico com tipo linha, x = ano, y = elo, serie = jogador)
+
 Pergunta: Quem vai terminar 2026 como número 1? (os 5 primeiros do ranking atual)
 WITH ranking AS (
     SELECT player_id, posicao, pontos, data_ranking FROM rankings

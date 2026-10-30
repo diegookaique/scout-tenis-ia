@@ -1,7 +1,9 @@
 """Testes das tools do agente. Requerem o banco: python scripts/carregar_dados.py"""
 
+import base64
 import json
 
+import numpy as np
 import pytest
 
 from src.db import CAMINHO_BANCO
@@ -223,3 +225,17 @@ def test_simular_torneio_e_reproduzivel():
 ])
 def test_simular_torneio_entradas_invalidas(ids, superficie):
     assert simular_torneio(ids, superficie)["erro"]
+
+
+def test_grafico_de_linha_ordena_pelo_eixo_x():
+    dados = [{"ano": 2022, "elo": 3, "jogador": "A"}, {"ano": 2020, "elo": 1, "jogador": "A"},
+             {"ano": 2021, "elo": 2, "jogador": "A"}]
+    figura = json.loads(gerar_grafico(dados, "linha", "ano", "elo", "Elo", serie="jogador")["figura"])
+    assert _valores(figura["data"][0]["x"]) == [2020, 2021, 2022]
+
+
+def _valores(campo) -> list:
+    """O Plotly 7 guarda arrays numéricos como {"dtype", "bdata"} (base64) no JSON."""
+    if isinstance(campo, dict):
+        return np.frombuffer(base64.b64decode(campo["bdata"]), dtype=campo["dtype"]).tolist()
+    return list(campo)
