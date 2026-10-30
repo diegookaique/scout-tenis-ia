@@ -1,6 +1,7 @@
 duckdb
 pandas
 anthropic
+google-genai
 streamlit
 plotly
 python-dotenv

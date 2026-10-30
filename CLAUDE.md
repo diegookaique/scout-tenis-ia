@@ -5,7 +5,8 @@ Agente de IA que responde perguntas sobre tênis (ATP) em linguagem natural, con
 ## Contexto
 - O roteiro completo, com as etapas e o progresso, está em `ROTEIRO.md`. Leia antes de começar cada tarefa.
 - Dados: CSVs de github.com/JeffSackmann/tennis_atp, carregados em `tenis.duckdb` por `scripts/carregar_dados.py`.
-- Stack: Python 3.11+, DuckDB, Anthropic SDK (tool use), Streamlit, Plotly.
+- Stack: Python 3.11+, DuckDB, Google Gen AI SDK (Gemini, plano gratuito) e Anthropic SDK (tool use), Streamlit, Plotly.
+- Provedores de IA: `src/agente_gemini.py` (Gemini) e `src/agente.py` (Claude) compartilham tools e funções; `src/provedores.py` escolhe pelo que houver de chave.
 
 ## Comandos
 - Instalar: `pip install -r requirements.txt`
@@ -21,5 +22,5 @@ Agente de IA que responde perguntas sobre tênis (ATP) em linguagem natural, con
 - Funções pequenas, com type hints.
 - O agente só executa SQL de leitura (SELECT/WITH). Nunca remova essa trava.
 - Nunca commitar `.env`, `data/` ou `*.duckdb`.
-- A chave da API vem de `ANTHROPIC_API_KEY` (local: `.env`; deploy: `st.secrets`).
+- As chaves vêm de `GEMINI_API_KEY` e/ou `ANTHROPIC_API_KEY` (local: `.env`; deploy: `st.secrets`). Sem chave, modo demonstração.
 - Ao terminar uma etapa: rodar os testes, marcar o checkbox no `ROTEIRO.md` e sugerir a mensagem de commit.

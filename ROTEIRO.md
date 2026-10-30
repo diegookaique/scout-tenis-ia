@@ -50,9 +50,9 @@ scout-tenis-ia/
 
 ### Etapa 0: setup do projeto (dia 1)
 
-- [ ] Repositório criado no GitHub
+- [x] Repositório criado no GitHub
 - [x] Ambiente virtual e dependências
-- [ ] Chave da API em `.env`
+- [x] Chave da API em `.env` (Gemini gratuita em `GEMINI_API_KEY` ou Claude em `ANTHROPIC_API_KEY`)
 
 **Prompt:**
 ```
@@ -142,7 +142,8 @@ tentativa de DROP bloqueada.
 - [x] Prompt de sistema com esquema, glossário e regras
 - [x] Loop de tool use (chama tools até ter a resposta final)
 - [x] Autocorreção quando o SQL falha
-- [ ] Teste no terminal
+- [x] Segundo provedor: Gemini API (plano gratuito), com as mesmas tools (`src/agente_gemini.py`, `src/provedores.py`)
+- [x] Teste no terminal (Gemini Flash-Lite: títulos na grama, pergunta de continuação e previsão por Elo)
 
 **Prompt (parte 1, prompts.py):**
 ```

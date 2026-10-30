@@ -1,6 +1,7 @@
 """Agente Scout de Tênis IA: loop de tool use com a Claude API.
 
-Uso no terminal:
+O agente com a Gemini API (plano gratuito) fica em src/agente_gemini.py e reaproveita
+as funções comuns daqui. Uso no terminal (escolhe o provedor pelas chaves do .env):
     python -m src.agente
 """
 
@@ -46,15 +47,7 @@ class AgenteTenis:
         """
         historico = historico or []
         mensagens = [*historico, {"role": "user", "content": pergunta}]
-        resultado: dict[str, Any] = {
-            "resposta_texto": "",
-            "sqls_executados": [],
-            "graficos": [],
-            "n_iteracoes": 0,
-            "passos": [],
-            "uso": {"entrada": 0, "saida": 0, "cache_lido": 0, "cache_gravado": 0},
-            "historico": historico,
-        }
+        resultado = novo_resultado(historico)
 
         for iteracao in range(1, MAX_ITERACOES + 1):
             resultado["n_iteracoes"] = iteracao
@@ -67,7 +60,7 @@ class AgenteTenis:
 
             if resposta.stop_reason == "tool_use":
                 if texto:
-                    self._registrar(resultado, "pensamento", texto=texto)
+                    registrar(resultado, "pensamento", texto=texto)
                 resultados_tools = [
                     self._executar_tool(bloco, resultado)
                     for bloco in resposta.content
@@ -82,7 +75,7 @@ class AgenteTenis:
             else:
                 # max_tokens, refusal etc.: a rodada é descartada do histórico
                 resultado["resposta_texto"] = _mensagem_parada(resposta.stop_reason, texto)
-                self._registrar(resultado, "aviso", texto=f"stop_reason={resposta.stop_reason}")
+                registrar(resultado, "aviso", texto=f"stop_reason={resposta.stop_reason}")
             return resultado
 
         return resultado  # inalcançável: a última volta sempre termina sem tools
@@ -110,30 +103,10 @@ class AgenteTenis:
 
     def _executar_tool(self, bloco: Any, resultado: dict[str, Any]) -> dict[str, Any]:
         """Executa um tool_use e devolve o bloco tool_result correspondente."""
-        nome, entrada = bloco.name, dict(bloco.input)
-        try:
-            saida = FUNCOES[nome](**entrada)
-            erro = _erro_da_saida(saida)
-        except Exception as exc:  # o agente recebe o erro e pode se corrigir
-            saida, erro = None, f"{type(exc).__name__}: {exc}"
-
-        if nome == "consultar_sql":
-            resultado["sqls_executados"].append({"sql": entrada.get("sql", ""), "erro": erro})
-        if nome == "gerar_grafico" and not erro:
-            resultado["graficos"].append(saida["figura"])
-            saida = {"ok": True, "mensagem": "Gráfico gerado e exibido ao usuário."}
-
-        self._registrar(resultado, "tool", nome=nome, entrada=_resumir_entrada(nome, entrada), erro=erro)
-        conteudo = erro if erro else json.dumps(saida, ensure_ascii=False, default=str)
+        conteudo, erro = executar_tool(bloco.name, dict(bloco.input), resultado)
         return {"type": "tool_result", "tool_use_id": bloco.id, "content": conteudo, "is_error": bool(erro)}
 
-    # ------------------------------------------------------------ log e uso
-
-    @staticmethod
-    def _registrar(resultado: dict[str, Any], tipo: str, **dados: Any) -> None:
-        passo = {"tipo": tipo, "iteracao": resultado["n_iteracoes"], **dados}
-        resultado["passos"].append(passo)
-        log.info("passo %s", passo)
+    # ------------------------------------------------------------ uso
 
     @staticmethod
     def _somar_uso(uso: dict[str, int], usage: Any) -> None:
@@ -141,6 +114,47 @@ class AgenteTenis:
         uso["saida"] += usage.output_tokens or 0
         uso["cache_lido"] += usage.cache_read_input_tokens or 0
         uso["cache_gravado"] += usage.cache_creation_input_tokens or 0
+
+
+# ---------------------------------------------------------------- comum aos provedores
+
+
+def novo_resultado(historico: list[Any]) -> dict[str, Any]:
+    """Estrutura devolvida por perguntar(), igual para Claude, Gemini e o modo demonstração."""
+    return {
+        "resposta_texto": "",
+        "sqls_executados": [],
+        "graficos": [],
+        "n_iteracoes": 0,
+        "passos": [],
+        "uso": {"entrada": 0, "saida": 0, "cache_lido": 0, "cache_gravado": 0},
+        "historico": historico,
+    }
+
+
+def executar_tool(nome: str, entrada: dict[str, Any], resultado: dict[str, Any]) -> tuple[str, str | None]:
+    """Executa uma tool, registra o passo e devolve (conteúdo para o modelo, erro)."""
+    try:
+        saida = FUNCOES[nome](**entrada)
+        erro = _erro_da_saida(saida)
+    except Exception as exc:  # o agente recebe o erro e pode se corrigir
+        saida, erro = None, f"{type(exc).__name__}: {exc}"
+
+    if nome == "consultar_sql":
+        resultado["sqls_executados"].append({"sql": entrada.get("sql", ""), "erro": erro})
+    if nome == "gerar_grafico" and not erro:
+        resultado["graficos"].append(saida["figura"])
+        saida = {"ok": True, "mensagem": "Gráfico gerado e exibido ao usuário."}
+
+    registrar(resultado, "tool", nome=nome, entrada=_resumir_entrada(nome, entrada), erro=erro)
+    conteudo = erro if erro else json.dumps(saida, ensure_ascii=False, default=str)
+    return conteudo, erro
+
+
+def registrar(resultado: dict[str, Any], tipo: str, **dados: Any) -> None:
+    passo = {"tipo": tipo, "iteracao": resultado["n_iteracoes"], **dados}
+    resultado["passos"].append(passo)
+    log.info("passo %s", passo)
 
 
 def _extrair_texto(resposta: Any) -> str:
@@ -173,13 +187,16 @@ def _mensagem_parada(stop_reason: str | None, texto: str) -> str:
 
 def main() -> None:
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "WARNING"))
-    if os.getenv("ANTHROPIC_API_KEY", "") in ("", "sua-chave-aqui"):
-        print("ANTHROPIC_API_KEY não configurada. Abra o arquivo .env e troque "
-              "'sua-chave-aqui' pela sua chave da Anthropic.")
+    from src.provedores import NOMES, chaves_do_ambiente, criar_agente, descrever_erro, escolher_provedor
+
+    provedor, chave = escolher_provedor(chaves_do_ambiente(), os.getenv("PROVEDOR", ""))
+    if provedor == "demo":
+        print("Nenhuma chave de IA configurada. Abra o arquivo .env e troque 'sua-chave-aqui' "
+              "em GEMINI_API_KEY (grátis em aistudio.google.com) ou em ANTHROPIC_API_KEY.")
         return
-    agente = AgenteTenis()
-    print(f"🎾 Scout de Tênis IA ({agente.modelo}). Digite 'sair' para encerrar.\n")
-    historico: list[dict[str, Any]] = []
+    agente = criar_agente(provedor, chave)
+    print(f"🎾 Scout de Tênis IA ({NOMES[provedor]}, {agente.modelo}). Digite 'sair' para encerrar.\n")
+    historico: list[Any] = []
     while True:
         try:
             pergunta = input("Você: ").strip()
@@ -191,8 +208,11 @@ def main() -> None:
             continue
         try:
             r = agente.perguntar(pergunta, historico)
-        except anthropic.APIError as erro:
-            print(f"\n[erro na API] {erro}\n")
+        except Exception as erro:
+            mensagem = descrever_erro(erro)
+            if mensagem is None:
+                raise
+            print(f"\n[erro na API] {mensagem}\n")
             continue
         historico = r["historico"]
         for passo in r["passos"]:

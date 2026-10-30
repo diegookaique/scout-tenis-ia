@@ -48,4 +48,4 @@ def test_evolucao_elo_big3():
 def test_pergunta_livre_explica_o_modo_demo():
     r = AgenteDemo().perguntar("Quem é o maior sacador da história?")
     assert r["sqls_executados"] == []
-    assert "ANTHROPIC_API_KEY" in r["resposta_texto"]
+    assert "GEMINI_API_KEY" in r["resposta_texto"]

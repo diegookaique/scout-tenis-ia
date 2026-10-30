@@ -180,3 +180,15 @@ def test_tools_schema_formato_anthropic():
     for tool in TOOLS_SCHEMA:
         assert tool["description"]
         assert tool["input_schema"]["type"] == "object"
+
+
+def test_elo_atual_e_o_rating_depois_da_ultima_partida():
+    # Partidas do mesmo torneio têm a mesma data: o último rating é o de maior "partidas"
+    divergentes = consultar_sql("""
+        SELECT count(*) AS n
+        FROM elo_atual a
+        JOIN elo e ON e.player_id = a.player_id AND e.superficie = a.superficie
+                  AND e.partidas = a.partidas
+        WHERE e.rating <> a.rating
+    """)
+    assert divergentes["linhas"][0][0] == 0

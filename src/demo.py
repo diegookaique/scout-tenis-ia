@@ -1,4 +1,4 @@
-"""Modo demonstração: responde as perguntas de exemplo sem chamar a Claude API.
+"""Modo demonstração: responde as perguntas de exemplo sem chamar nenhuma API de IA.
 
 Cada exemplo segue o mesmo caminho do agente (buscar_jogador → consultar_sql →
 gerar_grafico) com consultas prontas, e devolve o mesmo formato de resultado de
@@ -201,7 +201,7 @@ ORDER BY e.rating DESC LIMIT 10""",
         pergunta="Como evoluiu o Elo do Big 3 ao longo dos anos?",
         jogadores=["Djokovic", "Nadal", "Federer"],
         sql="""SELECT year(e.data) AS ano, any_value(j.nome_completo) AS jogador,
-       round(arg_max(e.rating, e.data)) AS elo
+       round(arg_max(e.rating, e.partidas)) AS elo
 FROM elo e JOIN jogadores j USING (player_id)
 WHERE e.superficie = 'Geral' AND e.player_id IN (104925, 104745, 103819)
 GROUP BY e.player_id, year(e.data)
@@ -237,8 +237,8 @@ class AgenteDemo:
         if exemplo is None:
             resultado["resposta_texto"] = (
                 "No modo demonstração eu só respondo as perguntas de exemplo da barra lateral. "
-                "Para perguntas livres, o app precisa de uma chave da Claude API "
-                "(variável ANTHROPIC_API_KEY)."
+                "Para perguntas livres, o app precisa de uma chave de IA: GEMINI_API_KEY "
+                "(grátis em aistudio.google.com) ou ANTHROPIC_API_KEY."
             )
             return resultado
         return _responder(exemplo, resultado)

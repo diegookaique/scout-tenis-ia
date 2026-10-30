@@ -81,9 +81,11 @@ def gravar(con: duckdb.DuckDBPyConnection, partidas: list[Partida]) -> int:
     con.execute("CREATE TABLE elo AS SELECT player_id::INTEGER AS player_id, superficie, "
                 "data::DATE AS data, rating, partidas::INTEGER AS partidas FROM df")
     con.execute("DROP TABLE IF EXISTS elo_atual")
+    # Desempate por partidas (contagem acumulada): todas as partidas de um torneio têm a
+    # mesma data, então arg_max(rating, data) pegaria um rating qualquer do torneio
     con.execute("""
         CREATE TABLE elo_atual AS
-        SELECT player_id, superficie, arg_max(rating, data) AS rating,
+        SELECT player_id, superficie, arg_max(rating, partidas) AS rating,
                max(partidas) AS partidas, max(data) AS ultima_partida
         FROM elo GROUP BY player_id, superficie
     """)

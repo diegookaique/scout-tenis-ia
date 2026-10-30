@@ -3,24 +3,24 @@
 Uso:
     streamlit run app.py
 
-Sem chave da Claude API, o app abre em modo demonstração (só as perguntas de exemplo).
+A IA vem da Gemini API (GEMINI_API_KEY, plano gratuito) ou da Claude API (ANTHROPIC_API_KEY).
+Sem chave, o app abre em modo demonstração (só as perguntas de exemplo).
 """
 
 import os
 from typing import Any
 
-import anthropic
 import plotly.io as pio
 import streamlit as st
 from dotenv import load_dotenv
 
 from src.db import cursor
 from src.demo import PERGUNTAS_EXEMPLO, AgenteDemo
+from src.provedores import NOMES, VARIAVEIS, criar_agente, descrever_erro, escolher_provedor
 
 load_dotenv()
 
 URL_GITHUB = "https://github.com/diegookaique/scout-tenis-ia"
-CHAVE_EXEMPLO = "sua-chave-aqui"
 
 st.set_page_config(page_title="Scout de Tênis IA", page_icon="🎾", layout="wide",
                    initial_sidebar_state="collapsed")
@@ -29,24 +29,25 @@ st.set_page_config(page_title="Scout de Tênis IA", page_icon="🎾", layout="wi
 # ---------------------------------------------------------------- agente
 
 
-def ler_chave() -> str:
-    """Chave da API: st.secrets no deploy, .env no computador. Vazia se não houver."""
+def _segredo(nome: str) -> str:
+    """Valor de st.secrets no deploy ou do .env no computador. Vazio se não houver."""
     try:
-        chave = st.secrets.get("ANTHROPIC_API_KEY", "")
+        valor = st.secrets.get(nome, "")
     except Exception:  # sem secrets.toml o Streamlit levanta erro ao acessar st.secrets
-        chave = ""
-    chave = chave or os.getenv("ANTHROPIC_API_KEY", "")
-    return "" if chave == CHAVE_EXEMPLO else chave
+        valor = ""
+    return valor or os.getenv(nome, "")
+
+
+def ler_provedor() -> tuple[str, str]:
+    """(provedor, chave): Gemini, Claude ou "demo" quando não há chave."""
+    chaves = {var: _segredo(var) for var in VARIAVEIS.values()}
+    return escolher_provedor(chaves, _segredo("PROVEDOR"))
 
 
 @st.cache_resource(show_spinner=False)
-def carregar_agente(chave: str) -> Any:
-    """Agente real quando há chave; senão, o modo demonstração."""
-    if not chave:
-        return AgenteDemo()
-    from src.agente import AgenteTenis
-
-    return AgenteTenis(client=anthropic.Anthropic(api_key=chave))
+def carregar_agente(provedor: str, chave: str) -> Any:
+    """Agente do provedor escolhido; sem chave, o modo demonstração."""
+    return criar_agente(provedor, chave)
 
 
 @st.cache_data(show_spinner=False)
@@ -131,12 +132,8 @@ def responder(agente: Any, pergunta: str) -> None:
         with st.spinner("Analisando os dados..."):
             try:
                 r = agente.perguntar(pergunta, st.session_state.historico)
-            except anthropic.AuthenticationError:
-                r = _falha("A chave da Claude API foi recusada. Confira o valor de ANTHROPIC_API_KEY.")
-            except anthropic.APIError as erro:
-                r = _falha(f"A Claude API não respondeu agora ({type(erro).__name__}). Tente de novo em instantes.")
-            except Exception as erro:  # o app não deve quebrar por um erro inesperado
-                r = _falha(f"Algo deu errado ao responder: {erro}")
+            except Exception as erro:  # o app não deve quebrar por um erro de API ou inesperado
+                r = _falha(descrever_erro(erro) or f"Algo deu errado ao responder: {erro}")
         msg = {"papel": "assistant", "texto": r["resposta_texto"], "graficos": r["graficos"],
                "sqls": r["sqls_executados"], "passos": r["passos"]}
         st.session_state.mensagens.append(msg)
@@ -178,7 +175,7 @@ def boas_vindas() -> str | None:
 # ---------------------------------------------------------------- barra lateral
 
 
-def barra_lateral() -> str | None:
+def barra_lateral(ia: str) -> str | None:
     """Desenha a barra lateral e devolve a pergunta de exemplo clicada, se houver."""
     clicada = None
     with st.sidebar:
@@ -191,6 +188,7 @@ def barra_lateral() -> str | None:
         inicio, fim = periodo_dos_dados()
         st.markdown(f"**Dados:** partidas da ATP de {inicio} a {fim}.")
         st.caption("Circuito principal: Grand Slams, Masters, ATP 250/500, Finals, Copa Davis e Olimpíadas.")
+        st.markdown(f"**IA:** {ia}")
         if URL_GITHUB:
             st.markdown(f"[Código no GitHub]({URL_GITHUB})")
 
@@ -204,7 +202,8 @@ def barra_lateral() -> str | None:
 
 def main() -> None:
     iniciar_estado()
-    agente = carregar_agente(ler_chave())
+    provedor, chave = ler_provedor()
+    agente = carregar_agente(provedor, chave)
     modo_demo = isinstance(agente, AgenteDemo)
 
     st.title("🎾 Scout de Tênis IA")
@@ -212,12 +211,12 @@ def main() -> None:
                "(Jeff Sackmann / tennis_atp), consultados com SQL.")
 
     if modo_demo:
-        st.info("**Modo demonstração:** este app está sem chave da Claude API. As perguntas de "
+        st.info("**Modo demonstração:** este app está sem chave de IA. As perguntas de "
                 "exemplo funcionam com consultas prontas; perguntas livres precisam da IA.", icon="ℹ️")
 
     # Pergunta clicada na tela inicial: volta a desenhar a página já sem a tela inicial
     pendente = st.session_state.pop("pendente", None)
-    clicada = barra_lateral()
+    clicada = barra_lateral(NOMES[provedor] + ("" if modo_demo else f" · `{agente.modelo}`"))
     if not st.session_state.mensagens and not pendente:
         inicial = boas_vindas()
         if inicial:
