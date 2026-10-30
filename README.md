@@ -8,7 +8,7 @@
 ![Claude API](https://img.shields.io/badge/Claude_API-tool_use-D97757?logo=anthropic&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-app-FF4B4B?logo=streamlit&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-gráficos-3F4F75?logo=plotly&logoColor=white)
-![Testes](https://img.shields.io/badge/testes-93_passando-2EA44F)
+![Testes](https://img.shields.io/badge/testes-106_passando-2EA44F)
 
 ![Resposta do Scout de Tênis IA para o H2H entre Sinner e Alcaraz](docs/resposta-h2h.jpg)
 
@@ -89,6 +89,21 @@ Um exemplo do caminho que o agente faz:
 - **Limites:** no máximo 8 iterações por pergunta. Na última, as tools são desligadas para forçar uma resposta final.
 - **Custo:** prompt caching em tools, prompt de sistema e histórico, para que as perguntas seguintes custem menos.
 
+## Avaliação do agente
+
+O agente foi avaliado em 13 perguntas de referência com o **Gemini Flash-Lite (plano gratuito)**:
+
+| Resultado | SQL com erro | Passos por pergunta | Tempo por pergunta |
+|---|---|---|---|
+| **13 de 13 certas (100%)**, meta de 80% | 0 | 1 a 5 | 4 a 18 s |
+
+As perguntas cobrem confronto direto, títulos, recorde por superfície, estatística de saque, evolução no tempo, ranking, comparação, jogador brasileiro, previsão por Elo, uma pergunta ambígua (há dois Zverev em 2017) e duas fora da base (WTA e um ano antes de 2000, em que o certo é dizer que não há dado).
+
+- **Resposta certa vem do banco:** cada pergunta em [`tests/perguntas_teste.yaml`](tests/perguntas_teste.yaml) tem um SQL de referência, executado na hora da avaliação. O script procura esses valores no texto do agente, nos formatos "1.260" e "79,8%".
+- **Relatório completo:** [`avaliacao.md`](avaliacao.md) tem a tabela e todas as respostas do agente. Para repetir: `python scripts/avaliar.py`.
+- **O que a avaliação mudou no prompt:** lendo as respostas da primeira rodada, os números estavam certos, mas o agente acrescentava contexto de memória (uma vez errado), fazia média de percentuais por partida em vez de somar pontos e respondia "0 títulos" para um ano fora da base. Três regras novas no prompt corrigiram isso.
+- **Limite conhecido:** a correção automática confere os números e nomes principais, não cada frase do contexto. Por isso as respostas foram lidas também à mão. Ainda aparece, às vezes, um fato de memória verdadeiro (ex.: as 310 semanas do Federer como nº 1 na carreira).
+
 ## Previsão de partidas com Elo por superfície
 
 O projeto calcula um **rating Elo** para cada jogador, percorrendo as 78.829 partidas jogadas desde 2000 em ordem cronológica (walkovers ficam de fora). Cada jogador tem um **Elo geral** e um **Elo por superfície** (quadra dura, saibro, grama e carpete). Todo jogador começa com 1.500. Quem vence ganha pontos, e ganha mais quando vence um adversário mais forte.
@@ -162,7 +177,8 @@ No plano gratuito do Gemini há limite de pedidos por minuto e por dia. Se passa
 | `streamlit run app.py` | Interface web |
 | `python -m src.agente` | Conversa com o agente no terminal (precisa da chave) |
 | `python scripts/calcular_elo.py` | Recalcula só o Elo e imprime a validação |
-| `pytest` | Roda os 93 testes (nenhum chama a API) |
+| `python scripts/avaliar.py` | Avalia o agente nas 13 perguntas de referência e gera `avaliacao.md` (precisa da chave) |
+| `pytest` | Roda os 106 testes (nenhum chama a API) |
 
 ## Estrutura do projeto
 
@@ -171,7 +187,8 @@ scout-tenis-ia/
 ├── app.py                  # interface Streamlit
 ├── scripts/
 │   ├── carregar_dados.py   # baixa os CSVs e monta o tenis.duckdb
-│   └── calcular_elo.py     # Elo histórico por superfície e validação
+│   ├── calcular_elo.py     # Elo histórico por superfície e validação
+│   └── avaliar.py          # avaliação do agente nas perguntas de referência
 ├── src/
 │   ├── db.py               # conexão read-only com o DuckDB
 │   ├── elo.py              # matemática do Elo, previsão e métricas
@@ -180,8 +197,10 @@ scout-tenis-ia/
 │   ├── agente.py           # loop de tool use com a Claude API (AgenteTenis) e modo terminal
 │   ├── agente_gemini.py    # o mesmo loop com a Gemini API (AgenteGemini)
 │   ├── provedores.py       # escolhe Gemini, Claude ou modo demo pelas chaves
+│   ├── avaliacao.py        # perguntas de referência e correção automática
 │   └── demo.py             # modo demonstração sem API (AgenteDemo)
-├── tests/                  # testes do Elo, das tools, dos agentes (clientes falsos) e do modo demo
+├── tests/                  # testes + perguntas_teste.yaml (perguntas de referência)
+├── avaliacao.md            # último relatório da avaliação
 ├── docs/                   # imagens do README
 ├── ROTEIRO.md              # roteiro de desenvolvimento por etapas
 └── requirements.txt
@@ -189,13 +208,14 @@ scout-tenis-ia/
 
 ## Testes
 
-93 testes com `pytest`, sem chamadas à API:
+106 testes com `pytest`, sem chamadas à API:
 
 - **Elo:** probabilidades da fórmula, conservação dos pontos com K fixo, previsão usando só partidas anteriores e métricas (acerto, Brier).
 - **Tools:** previsão simétrica e com probabilidades somando 100%, avisos de poucas partidas, busca de jogador com e sem acento e com erro de digitação, limite de linhas, datas serializáveis, todos os tipos de gráfico e bloqueio de escrita (`DROP`, `DELETE`, `INSERT`, `CREATE`, `COPY`, `ATTACH`, leitura de arquivos, múltiplos comandos).
 - **Agentes (Claude e Gemini):** um cliente falso roteiriza as respostas do modelo para testar o loop, a autocorreção depois de um SQL com erro, o limite de iterações, o histórico e os parâmetros da requisição.
 - **Provedores:** escolha do provedor pelas chaves e mensagens claras para chave recusada e limite gratuito atingido.
 - **Modo demonstração:** cada pergunta de exemplo executa sem erro e com os valores esperados.
+- **Avaliação:** leitura de números nos formatos brasileiro e americano, tolerância, pergunta ambígua, recusa e validade do SQL de referência de cada pergunta.
 
 ## Status e próximos passos
 
@@ -203,7 +223,7 @@ scout-tenis-ia/
 - [x] Tools do agente com testes
 - [x] Agente com tool use, autocorreção e modo terminal
 - [x] Interface Streamlit com modo demonstração
-- [ ] Avaliação automática com perguntas de referência (meta: ≥ 80% de acerto)
+- [x] Avaliação automática com perguntas de referência: 13/13 (meta: ≥ 80%)
 - [x] Elo por superfície com previsão de partidas e validação
 - [x] Gráfico da evolução do Elo ao longo dos anos
 - [ ] Deploy no Streamlit Community Cloud
@@ -222,4 +242,4 @@ Dados de tênis de **Jeff Sackmann / [tennis_atp](https://github.com/JeffSackman
 
 ## English summary
 
-**Tennis Scout AI** answers questions about men's professional tennis (ATP) in natural language. An LLM agent (Google Gemini on the free tier, or Anthropic Claude) uses tool use to look up players, write and run read-only SQL against a DuckDB database of 79k ATP matches (2000–2026), and return the answer with Plotly charts and the exact SQL it ran. It also predicts matches with a surface-blended Elo rating, validated on 10k matches since 2023 (64.2% accuracy, Brier 0.219, vs. 63.9% for "higher ATP rank wins"). The SQL is restricted to `SELECT`/`WITH` on a read-only connection, failed queries are fed back to the model for self-correction, and 93 tests cover the Elo model, the tools, both agent loops (with fake clients) and a no-API demo mode. Built with Python, DuckDB, the Google Gen AI and Anthropic SDKs, Streamlit and Plotly. Data by Jeff Sackmann (CC BY-NC-SA 4.0).
+**Tennis Scout AI** answers questions about men's professional tennis (ATP) in natural language. An LLM agent (Google Gemini on the free tier, or Anthropic Claude) uses tool use to look up players, write and run read-only SQL against a DuckDB database of 79k ATP matches (2000–2026), and return the answer with Plotly charts and the exact SQL it ran. It also predicts matches with a surface-blended Elo rating, validated on 10k matches since 2023 (64.2% accuracy, Brier 0.219, vs. 63.9% for "higher ATP rank wins"). The SQL is restricted to `SELECT`/`WITH` on a read-only connection, failed queries are fed back to the model for self-correction, and 106 tests cover the Elo model, the tools, both agent loops (with fake clients) and a no-API demo mode. On 13 reference questions whose answers are computed by SQL at evaluation time, the agent on Gemini Flash-Lite (free tier) scored 13/13, with zero failed queries. Built with Python, DuckDB, the Google Gen AI and Anthropic SDKs, Streamlit and Plotly. Data by Jeff Sackmann (CC BY-NC-SA 4.0).

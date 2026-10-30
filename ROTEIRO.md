@@ -213,9 +213,9 @@ Use cores neutras e layout wide.
 
 ### Etapa 5: qualidade e avaliação (dias 10–11)
 
-- [ ] 10–15 perguntas de teste com resposta esperada
-- [ ] Script de avaliação que mede a taxa de acerto
-- [ ] Ajustes no prompt até atingir ≥ 80%
+- [x] 10–15 perguntas de teste com resposta esperada (13, com SQL de referência)
+- [x] Script de avaliação que mede a taxa de acerto (`scripts/avaliar.py` → `avaliacao.md`)
+- [x] Ajustes no prompt até atingir ≥ 80% (13/13 com Gemini Flash-Lite; 3 regras novas contra contexto de memória, média de percentuais e anos fora da base)
 
 **Prompt:**
 ```

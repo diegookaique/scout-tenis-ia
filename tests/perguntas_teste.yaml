@@ -1,0 +1,109 @@
+# Perguntas de referência da avaliação (python scripts/avaliar.py).
+#
+# A resposta esperada vem do banco, não de memória:
+#   sql         consulta de referência; cada coluna da 1ª linha precisa aparecer na resposta
+#               (números com a tolerância indicada; textos como nome, sem acento/maiúscula)
+#   ferramenta  chama uma tool direto: {nome, args, campo, escala}
+#   aceitar     textos alternativos que também contam como acerto (pergunta ambígua)
+#   tipo        "valores" (padrão) ou "recusa": a resposta deve dizer que não há dados,
+#               sem inventar números; "deve_conter" lista termos obrigatórios
+
+- id: h2h
+  categoria: Confronto direto
+  pergunta: Quantas vezes o Djokovic venceu o Nadal?
+  sql: |
+    SELECT count(*) FILTER (WHERE venceu) AS vitorias_djokovic
+    FROM partidas_jogador WHERE player_id = 104925 AND adversario_id = 104745
+
+- id: slams
+  categoria: Títulos
+  pergunta: Quantos Grand Slams o Nadal ganhou?
+  sql: |
+    SELECT count(*) AS slams
+    FROM partidas_jogador
+    WHERE player_id = 104745 AND nivel_torneio = 'G' AND rodada = 'F' AND venceu
+
+- id: saibro
+  categoria: Recorde por superfície
+  pergunta: Quem tem mais vitórias no saibro desde 2000?
+  sql: |
+    SELECT split_part(nome, ' ', -1) AS sobrenome, count(*) AS vitorias
+    FROM partidas_jogador WHERE superficie = 'Clay' AND venceu
+    GROUP BY nome ORDER BY vitorias DESC LIMIT 1
+
+- id: saque
+  categoria: Estatística de saque
+  pergunta: Qual o percentual de pontos ganhos com o primeiro saque do Federer em 2017?
+  # Certo é somar pontos e dividir (79,8%); a média dos percentuais por partida dá 80,7%
+  tolerancia: 0.3
+  sql: |
+    SELECT round(100.0 * sum(pontos_ganhos_1o_saque) / sum(primeiro_saque_dentro), 1) AS pct
+    FROM partidas_jogador WHERE player_id = 103819 AND ano = 2017
+
+- id: melhor_ano
+  categoria: Evolução no tempo
+  pergunta: Em que ano o Djokovic teve o maior percentual de vitórias?
+  sql: |
+    SELECT ano FROM partidas_jogador WHERE player_id = 104925
+    GROUP BY ano ORDER BY avg(venceu::INT) DESC LIMIT 1
+
+- id: numero1_2020
+  categoria: Ranking
+  pergunta: Quem era o número 1 do ranking no início de 2020?
+  sql: |
+    SELECT split_part(j.nome_completo, ' ', -1) AS sobrenome
+    FROM rankings r JOIN jogadores j USING (player_id)
+    WHERE r.posicao = 1 AND r.data_ranking <= DATE '2020-01-06'
+    ORDER BY r.data_ranking DESC LIMIT 1
+
+- id: semanas_n1
+  categoria: Ranking
+  pergunta: Em quantas semanas o Federer foi número 1 do ranking, nos dados disponíveis?
+  sql: |
+    SELECT count(DISTINCT data_ranking) AS semanas
+    FROM rankings WHERE player_id = 103819 AND posicao = 1
+
+- id: aces_2024
+  categoria: Comparação
+  pergunta: Quem fez mais aces em 2024, Hurkacz ou Zverev?
+  sql: |
+    SELECT split_part(nome, ' ', -1) AS sobrenome, sum(aces) AS aces
+    FROM partidas_jogador WHERE ano = 2024 AND player_id IN (128034, 100644)
+    GROUP BY nome ORDER BY aces DESC LIMIT 1
+
+- id: fonseca_2025
+  categoria: Jogador brasileiro
+  pergunta: Quantas partidas o João Fonseca venceu em 2025?
+  sql: |
+    SELECT count(*) FILTER (WHERE venceu) AS vitorias
+    FROM partidas_jogador WHERE player_id = 211663 AND ano = 2025
+
+- id: previsao
+  categoria: Previsão (Elo)
+  pergunta: Qual a chance do Alcaraz vencer o Zverev no saibro?
+  tolerancia: 0.1
+  ferramenta:
+    nome: prever_partida
+    args: {jogador_a_id: 207989, jogador_b_id: 100644, superficie: Clay}
+    campo: prob_a
+    escala: 100
+
+- id: zverev_ambiguo
+  categoria: Pergunta ambígua
+  # Há dois Zverev no circuito em 2017: vale responder pelo Alexander ou citar o Mischa
+  pergunta: Quantas partidas o Zverev venceu em 2017?
+  aceitar: [Mischa]
+  sql: |
+    SELECT count(*) FILTER (WHERE venceu) AS vitorias
+    FROM partidas_jogador WHERE player_id = 100644 AND ano = 2017
+
+- id: wta
+  categoria: Fora do escopo
+  pergunta: Quem é a número 1 do ranking da WTA?
+  tipo: recusa
+
+- id: antes_de_2000
+  categoria: Fora do período
+  pergunta: Quantos títulos o Guga Kuerten ganhou em 1997?
+  tipo: recusa
+  deve_conter: ["2000"]

@@ -14,6 +14,14 @@ circuito masculino (ATP) com base em dados reais, consultando um banco DuckDB.
 (o número, o nome, o placar), depois o contexto que ajuda a interpretá-la.
 - Nunca invente números. Todo dado da resposta deve vir de uma consulta feita \
 nesta conversa. Se os dados não permitem responder, diga isso claramente.
+- O contexto também precisa vir das consultas. Não acrescente fatos de memória \
+(títulos, posições no ranking, anos de pico, lesões); se quiser dar contexto, \
+consulte antes. Na dúvida, responda só o que foi consultado.
+- Para um percentual sobre várias partidas, some numeradores e denominadores \
+(ex.: sum(pontos_ganhos_1o_saque) / sum(primeiro_saque_dentro)); não faça média \
+dos percentuais de cada partida. Dê um único número.
+- Pergunta sobre um ano antes de {ano_inicio} (ou depois de {data_fim}): diga \
+que os dados não cobrem esse período, sem responder "0" nem estimar de memória.
 - Antes de filtrar por um jogador, use buscar_jogador para obter o player_id e \
 filtre pelo id, nunca pelo nome (há homônimos e grafias diferentes). Se houver \
 mais de um candidato plausível, escolha o de mais partidas e diga qual usou; se \
@@ -119,6 +127,7 @@ def montar_system_prompt() -> str:
     ).fetchone()
     return SYSTEM_PROMPT.format(
         data_inicio=_data_br(data_inicio),
+        ano_inicio=data_inicio.year,
         data_fim=_data_br(data_fim),
         ranking_inicio=_data_br(ranking_inicio),
         ranking_fim=_data_br(ranking_fim),
