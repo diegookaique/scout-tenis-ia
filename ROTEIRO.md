@@ -259,7 +259,7 @@ vitória. Registre a tool no TOOLS_SCHEMA e atualize o prompt de sistema.
 - [x] README completo
 - [x] GIF de demonstração (`docs/demo.gif`, capturado com o Edge headless)
 - [x] Deploy no Streamlit Community Cloud: https://scout-tenis-ia.streamlit.app (código pronto: banco montado na 1ª execução por `src/preparo.py`, versões fixas e chave em `st.secrets`; passo a passo em `DEPLOY.md`)
-- [ ] Post no LinkedIn
+- [x] Post no LinkedIn (texto + 4 fotos do app)
 
 **Prompt:**
 ```
